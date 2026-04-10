@@ -6,7 +6,7 @@
       ".read": true,
       "$code": {
         ".read": true,
-        ".write": "newData.hasChildren(['code','title','durationMinutes','questions','answerKey','createdAtIso'])",
+          ".write": "!newData.exists() || newData.hasChildren(['code','title','durationMinutes','questions','answerKey','createdAtIso'])",
         "code": {
           ".validate": "newData.isString() && newData.val() === $code"
         },

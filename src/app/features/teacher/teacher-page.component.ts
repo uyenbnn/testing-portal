@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,196 +6,21 @@ import { startWith } from 'rxjs';
 import { TestCodeService } from '../../core/services/test-code.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
-import { ParseError } from '../../shared/models/test.models';
+import { ParseError, PublishedTest } from '../../shared/models/test.models';
+
+interface CreatedTestItem extends PublishedTest {
+  questionCount: number;
+  createdAtLabel: string;
+}
 
 @Component({
   selector: 'app-teacher-page',
   imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <main class="page">
-      <header class="header">
-        <a routerLink="/" class="back-link">Back</a>
-        <h1>Teacher Workspace</h1>
-      </header>
-
-      <section class="layout">
-        <form class="card" [formGroup]="form" (ngSubmit)="publishTest()">
-          <h2>Create a Test</h2>
-
-          <label for="title">Test title</label>
-          <input id="title" type="text" formControlName="title" />
-
-          <label for="durationMinutes">Duration (minutes)</label>
-          <input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
-
-          <div class="template-head">
-            <h3>Question template (paste plain text)</h3>
-            <button type="button" class="ghost" (click)="useQuestionTemplate()">Use sample</button>
-          </div>
-          <textarea rows="12" formControlName="questionText"></textarea>
-          @if (questionErrors().length > 0) {
-            <ul class="field-error-list" aria-live="polite">
-              @for (error of questionErrors(); track error.message) {
-                <li>{{ error.message }}</li>
-              }
-            </ul>
-          }
-
-          <div class="template-head">
-            <h3>Answer key template (paste plain text)</h3>
-            <button type="button" class="ghost" (click)="useAnswerTemplate()">Use sample</button>
-          </div>
-          <textarea rows="6" formControlName="answerText"></textarea>
-          @if (answerErrors().length > 0) {
-            <ul class="field-error-list" aria-live="polite">
-              @for (error of answerErrors(); track error.message) {
-                <li>{{ error.message }}</li>
-              }
-            </ul>
-          }
-
-          <button class="primary" type="submit" [disabled]="isPublishing()">
-            {{ isPublishing() ? 'Publishing...' : 'Publish test' }}
-          </button>
-
-          @if (publishedCode()) {
-            <p class="success">Published. Test code: <strong>{{ publishedCode() }}</strong></p>
-          }
-
-          @if (errors().length > 0) {
-            <ul class="error-list" aria-live="polite">
-              @for (error of errors(); track error.message) {
-                <li>{{ error.message }}</li>
-              }
-            </ul>
-          }
-        </form>
-
-        <aside class="card">
-          <h2>Validation Preview</h2>
-          <p>Detected Questions: {{ previewQuestionCount() }}</p>
-          <p>Detected Answer Keys: {{ previewAnswerCount() }}</p>
-          <p class="hint">Format: Question N: ... + A./B./C./D. options, and answer lines like 1. A</p>
-        </aside>
-      </section>
-    </main>
-  `,
-  styles: `
-    .page {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 1.5rem 1rem 3rem;
-      display: grid;
-      gap: 1rem;
-    }
-
-    .header h1 {
-      margin: 0.4rem 0 0;
-      color: #113840;
-    }
-
-    .back-link {
-      color: #0b6978;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 1rem;
-    }
-
-    form {
-      display: grid;
-      gap: 0.65rem;
-    }
-
-    label,
-    h3 {
-      font-weight: 700;
-      color: #143840;
-      margin: 0;
-      font-size: 0.95rem;
-    }
-
-    input,
-    textarea {
-      border: 1px solid #b7cfd4;
-      border-radius: 10px;
-      padding: 0.64rem;
-      font: inherit;
-    }
-
-    .template-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-top: 0.35rem;
-    }
-
-    .primary,
-    .ghost {
-      border: 0;
-      border-radius: 10px;
-      padding: 0.6rem 0.85rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .primary {
-      color: #fff;
-      background: #0f6a76;
-      margin-top: 0.25rem;
-      width: fit-content;
-    }
-
-    .ghost {
-      color: #0f6a76;
-      background: #e7f4f5;
-    }
-
-    .success {
-      color: #0f5f2b;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .error-list {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: #8f1d1d;
-    }
-
-    .field-error-list {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: #b61c1c;
-      font-size: 0.88rem;
-      line-height: 1.35;
-    }
-
-    .hint {
-      color: #3b555f;
-    }
-
-    @media (max-width: 900px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-    }
-  `,
+  templateUrl: './teacher-page.component.html',
+  styleUrl: './teacher-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TeacherPageComponent {
+export class TeacherPageComponent implements OnInit {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly templateService = inject(TestTemplateService);
   private readonly codeService = inject(TestCodeService);
@@ -211,6 +36,10 @@ export class TeacherPageComponent {
   readonly isPublishing = signal(false);
   readonly publishedCode = signal('');
   readonly errors = signal<ParseError[]>([]);
+  readonly createdTests = signal<PublishedTest[]>([]);
+  readonly isLoadingTests = signal(true);
+  readonly listError = signal('');
+  readonly deletingCodes = signal<Record<string, boolean>>({});
 
   readonly formValue = toSignal(
     this.form.valueChanges.pipe(startWith(this.form.getRawValue())),
@@ -227,6 +56,17 @@ export class TeacherPageComponent {
 
   readonly previewQuestionCount = computed(() => this.parseResult().questions.length);
   readonly previewAnswerCount = computed(() => Object.keys(this.parseResult().answerKey).length);
+  readonly createdTestItems = computed<CreatedTestItem[]>(() =>
+    this.createdTests().map((test) => ({
+      ...test,
+      questionCount: test.questions.length,
+      createdAtLabel: this.formatCreatedAt(test.createdAtIso)
+    }))
+  );
+
+  ngOnInit(): void {
+    void this.loadPublishedTests();
+  }
 
   useQuestionTemplate(): void {
     this.form.controls.questionText.setValue(this.templateService.questionTemplate);
@@ -295,10 +135,82 @@ export class TeacherPageComponent {
 
       await this.repository.publishTest(payload);
       this.publishedCode.set(code);
+      this.createdTests.update((tests) => this.sortTests([payload, ...tests.filter((test) => test.code !== code)]));
     } catch {
       this.errors.set([{ scope: 'general', line: 1, message: 'Failed to publish test. Please try again.' }]);
     } finally {
       this.isPublishing.set(false);
     }
+  }
+
+  isDeleting(code: string): boolean {
+    return this.deletingCodes()[code] ?? false;
+  }
+
+  async deleteTest(test: PublishedTest): Promise<void> {
+    const confirmed = window.confirm(`Delete test "${test.title}" (${test.code})? This cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.listError.set('');
+    this.setDeleting(test.code, true);
+
+    try {
+      await this.repository.deleteTest(test.code);
+      this.createdTests.update((tests) => tests.filter((current) => current.code !== test.code));
+
+      if (this.publishedCode() === test.code) {
+        this.publishedCode.set('');
+      }
+    } catch {
+      this.listError.set('Failed to delete the selected test. Please try again.');
+    } finally {
+      this.setDeleting(test.code, false);
+    }
+  }
+
+  private async loadPublishedTests(): Promise<void> {
+    this.isLoadingTests.set(true);
+    this.listError.set('');
+
+    try {
+      const tests = await this.repository.listPublishedTests();
+      this.createdTests.set(this.sortTests(tests));
+    } catch {
+      this.listError.set('Failed to load created tests. Please refresh and try again.');
+    } finally {
+      this.isLoadingTests.set(false);
+    }
+  }
+
+  private setDeleting(code: string, isDeleting: boolean): void {
+    this.deletingCodes.update((current) => {
+      const next = { ...current };
+
+      if (isDeleting) {
+        next[code] = true;
+      } else {
+        delete next[code];
+      }
+
+      return next;
+    });
+  }
+
+  private sortTests(tests: PublishedTest[]): PublishedTest[] {
+    return [...tests].sort((left, right) => right.createdAtIso.localeCompare(left.createdAtIso));
+  }
+
+  private formatCreatedAt(createdAtIso: string): string {
+    const createdAt = new Date(createdAtIso);
+    if (Number.isNaN(createdAt.getTime())) {
+      return 'Unknown date';
+    }
+
+    return new Intl.DateTimeFormat('en', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(createdAt);
   }
 }

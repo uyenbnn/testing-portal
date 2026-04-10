@@ -1,0 +1,104 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.back-link {
+  color: #0b6978;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.header h1 {
+  margin: 0.4rem 0 0;
+  color: #113840;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+label {
+  font-weight: 700;
+  color: #143840;
+}
+
+input {
+  border: 1px solid #b7cfd4;
+  border-radius: 10px;
+  padding: 0.62rem;
+  font: inherit;
+}
+
+.primary {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: #0f6a76;
+  width: fit-content;
+  margin-top: 0.4rem;
+}
+
+.error {
+  color: #8f1d1d;
+  margin-bottom: 0;
+}
+
+.timer {
+  font-weight: 700;
+  color: #184550;
+}
+
+.timer.warning {
+  color: #9a2c0f;
+}
+
+.question-list {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.question-card {
+  border: 1px solid #c8d8dc;
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.question-card h3,
+.question-card p {
+  margin-top: 0;
+}
+
+.options {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.option-btn {
+  text-align: left;
+  border: 1px solid #bbd3d8;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.58rem;
+  cursor: pointer;
+}
+
+.option-btn.selected {
+  border-color: #0f6a76;
+  background: #e6f3f6;
+}

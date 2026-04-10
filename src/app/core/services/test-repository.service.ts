@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { getApps, initializeApp } from 'firebase/app';
-import { Database, get, getDatabase, ref, set } from 'firebase/database';
+import { Database, get, getDatabase, ref, remove, set } from 'firebase/database';
 import { environment } from '../../../environments/environment';
 import { OptionKey, PublishedTest, TestQuestion } from '../../shared/models/test.models';
 
@@ -25,10 +25,24 @@ export class TestRepositoryService {
 
   async publishTest(test: PublishedTest): Promise<void> {
     await set(ref(this.database, `tests/${test.code}`), test);
+    this.cacheTest(test);
+  }
 
-    const nextMap = new Map(this.tests());
-    nextMap.set(test.code, test);
-    this.tests.set(nextMap);
+  async listPublishedTests(): Promise<PublishedTest[]> {
+    const snapshot = await get(ref(this.database, 'tests'));
+    if (!snapshot.exists()) {
+      this.replaceCache([]);
+      return [];
+    }
+
+    const tests = this.toPublishedTests(snapshot.val());
+    this.replaceCache(tests);
+    return tests;
+  }
+
+  async deleteTest(code: string): Promise<void> {
+    await remove(ref(this.database, `tests/${code}`));
+    this.removeCachedTest(code);
   }
 
   async findByCode(code: string): Promise<PublishedTest | null> {
@@ -47,10 +61,35 @@ export class TestRepositoryService {
       return null;
     }
 
-    const nextMap = new Map(this.tests());
-    nextMap.set(parsed.code, parsed);
-    this.tests.set(nextMap);
+    this.cacheTest(parsed);
     return parsed;
+  }
+
+  private toPublishedTests(value: unknown): PublishedTest[] {
+    if (!value || typeof value !== 'object') {
+      return [];
+    }
+
+    return Object.entries(value).flatMap(([code, candidate]) => {
+      const parsed = this.toPublishedTest(candidate, code);
+      return parsed ? [parsed] : [];
+    });
+  }
+
+  private replaceCache(tests: PublishedTest[]): void {
+    this.tests.set(new Map(tests.map((test) => [test.code, test])));
+  }
+
+  private cacheTest(test: PublishedTest): void {
+    const nextMap = new Map(this.tests());
+    nextMap.set(test.code, test);
+    this.tests.set(nextMap);
+  }
+
+  private removeCachedTest(code: string): void {
+    const nextMap = new Map(this.tests());
+    nextMap.delete(code);
+    this.tests.set(nextMap);
   }
 
   private toPublishedTest(value: unknown, expectedCode: string): PublishedTest | null {

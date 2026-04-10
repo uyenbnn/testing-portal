@@ -1,0 +1,120 @@
+<main class="page">
+  <header class="header">
+    <a routerLink="/" class="back-link">Back</a>
+    <h1>Teacher Workspace</h1>
+  </header>
+
+  <section class="layout">
+    <form class="card" [formGroup]="form" (ngSubmit)="publishTest()">
+      <h2>Create a Test</h2>
+
+      <label for="title">Test title</label>
+      <input id="title" type="text" formControlName="title" />
+
+      <label for="durationMinutes">Duration (minutes)</label>
+      <input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
+
+      <div class="template-head">
+        <h3>Question template (paste plain text)</h3>
+        <button type="button" class="ghost" (click)="useQuestionTemplate()">Use sample</button>
+      </div>
+      <textarea rows="12" formControlName="questionText"></textarea>
+      @if (questionErrors().length > 0) {
+        <ul class="field-error-list" aria-live="polite">
+          @for (error of questionErrors(); track error.message) {
+            <li>{{ error.message }}</li>
+          }
+        </ul>
+      }
+
+      <div class="template-head">
+        <h3>Answer key template (paste plain text)</h3>
+        <button type="button" class="ghost" (click)="useAnswerTemplate()">Use sample</button>
+      </div>
+      <textarea rows="6" formControlName="answerText"></textarea>
+      @if (answerErrors().length > 0) {
+        <ul class="field-error-list" aria-live="polite">
+          @for (error of answerErrors(); track error.message) {
+            <li>{{ error.message }}</li>
+          }
+        </ul>
+      }
+
+      <button class="primary" type="submit" [disabled]="isPublishing()">
+        {{ isPublishing() ? 'Publishing...' : 'Publish test' }}
+      </button>
+
+      @if (publishedCode()) {
+        <p class="success">Published. Test code: <strong>{{ publishedCode() }}</strong></p>
+      }
+
+      @if (errors().length > 0) {
+        <ul class="error-list" aria-live="polite">
+          @for (error of errors(); track error.message) {
+            <li>{{ error.message }}</li>
+          }
+        </ul>
+      }
+    </form>
+
+    <aside class="card">
+      <h2>Validation Preview</h2>
+      <p>Detected Questions: {{ previewQuestionCount() }}</p>
+      <p>Detected Answer Keys: {{ previewAnswerCount() }}</p>
+      <p class="hint">Format: Question N: ... + A./B./C./D. options, and answer lines like 1. A</p>
+    </aside>
+  </section>
+
+  <section class="card created-tests" aria-live="polite">
+    <div class="section-head">
+      <div>
+        <h2>Created Tests</h2>
+        <p class="hint">All published tests are listed here and can be removed from the portal.</p>
+      </div>
+    </div>
+
+    @if (isLoadingTests()) {
+      <p class="hint">Loading created tests...</p>
+    } @else if (listError()) {
+      <p class="error-text">{{ listError() }}</p>
+    } @else if (createdTestItems().length === 0) {
+      <p class="hint">No tests published yet.</p>
+    } @else {
+      <div class="test-list" role="list">
+        @for (test of createdTestItems(); track test.code) {
+          <article class="test-row" role="listitem">
+            <div class="test-meta">
+              <div class="test-title-row">
+                <h3>{{ test.title }}</h3>
+                <span class="code-pill">{{ test.code }}</span>
+              </div>
+              <dl class="test-facts">
+                <div>
+                  <dt>Duration</dt>
+                  <dd>{{ test.durationMinutes }} min</dd>
+                </div>
+                <div>
+                  <dt>Questions</dt>
+                  <dd>{{ test.questionCount }}</dd>
+                </div>
+                <div>
+                  <dt>Created</dt>
+                  <dd>{{ test.createdAtLabel }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <button
+              type="button"
+              class="danger"
+              [disabled]="isDeleting(test.code)"
+              [attr.aria-label]="'Delete test ' + test.code"
+              (click)="deleteTest(test)">
+              {{ isDeleting(test.code) ? 'Deleting...' : 'Delete' }}
+            </button>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</main>
