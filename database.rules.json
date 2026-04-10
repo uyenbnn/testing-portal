@@ -1,0 +1,34 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "tests": {
+      ".read": true,
+      "$code": {
+        ".read": true,
+        ".write": "newData.hasChildren(['code','title','durationMinutes','questions','answerKey','createdAtIso'])",
+        "code": {
+          ".validate": "newData.isString() && newData.val() === $code"
+        },
+        "title": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "durationMinutes": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 300"
+        },
+        "createdAtIso": {
+          ".validate": "newData.isString()"
+        },
+        "questions": {
+          ".validate": "newData.exists()"
+        },
+        "answerKey": {
+          ".validate": "newData.exists()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

@@ -1,59 +1,80 @@
-# TestingPortal
+# Testing Portal
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Testing Portal is a role-based web app (Teacher + Student) to create and take timed tests without login in MVP.
 
-## Development server
+## Current implementation status
 
-To start a local development server, run:
+- Role selection welcome page.
+- Teacher workspace:
+  - create test with title and timer,
+  - paste plain text question blocks,
+  - paste plain text answer key,
+  - publish test with auto-generated 6-digit code.
+- Student workspace:
+  - join with test code + name + class,
+  - take timed objective test,
+  - auto-submit when timer reaches zero,
+  - view score summary.
+- Firebase draft layout:
+  - placeholders for Firebase config in environment files,
+  - repository service contains clear integration points for Realtime Database.
+- GitHub Actions:
+  - CI workflow on pull requests to main,
+  - auto deployment workflow on push to main (Firebase Hosting).
 
-```bash
-ng serve
+## Plain text templates
+
+### Question template
+
+```text
+Question 1: What is 2 + 2?
+A) 2
+B) 3
+C) 4
+D) 5
+
+Question 2: Which one is a prime number?
+A) 8
+B) 9
+C) 11
+D) 12
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+### Answer key template
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```text
+1: C
+2: C
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Development
 
 ```bash
-ng generate --help
+npm install
+npm start
 ```
 
-## Building
+Open http://localhost:4200.
 
-To build the project run:
+## Test and build
 
 ```bash
-ng build
+npm test -- --watch=false
+npm run build -- --configuration production
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Firebase setup
 
-## Running unit tests
+1. Ensure Realtime Database is enabled for your Firebase project.
+2. Confirm `src/environments/environment.ts` and `src/environments/environment.prod.ts` contain your Firebase web config.
+3. Confirm `.firebaserc` uses your Firebase project ID.
+4. Publish Realtime Database rules from `database.rules.json`.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## GitHub Actions deployment to Firebase Hosting
 
-```bash
-ng test
-```
+The deploy workflow expects these repository secrets:
 
-## Running end-to-end tests
+- `FIREBASE_SERVICE_ACCOUNT`
+- `FIREBASE_PROJECT_ID`
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+On each push to `main`, workflow `.github/workflows/deploy-firebase.yml` builds, deploys Realtime Database rules, and deploys hosting.
