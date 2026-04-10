@@ -156,16 +156,19 @@ export class TeacherPageComponent implements OnInit {
 
     try {
       const code = await this.codeService.generateUniqueCode((candidate) => this.repository.isCodeTaken(candidate));
-      const payload = {
+      const payload: PublishedTest = {
         code,
         title: this.form.controls.title.value,
         testType: this.form.controls.testType.value,
         durationMinutes: this.form.controls.durationMinutes.value,
         questions: parsed.questions,
-        passages: parsed.passages.length > 0 ? parsed.passages : undefined,
         answerKey: parsed.answerKey,
         createdAtIso: new Date().toISOString()
       };
+
+      if (payload.testType === 'reading') {
+        payload.passages = parsed.passages;
+      }
 
       await this.repository.publishTest(payload);
       this.publishedCode.set(code);

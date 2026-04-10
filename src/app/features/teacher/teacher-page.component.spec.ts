@@ -199,6 +199,57 @@ describe('TeacherPageComponent', () => {
     });
   });
 
+  it('publishes a standard test without a passages field', async () => {
+    const templateService = TestBed.inject(TestTemplateService) as unknown as {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    templateService.parse.mockReturnValue({
+      questions: [
+        {
+          number: 1,
+          prompt: 'What is 2 + 2?',
+          options: { A: '2', B: '3', C: '4', D: '5' }
+        }
+      ],
+      passages: [],
+      answerKey: { 1: 'C' },
+      errors: []
+    });
+
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance;
+    component.form.setValue({
+      title: 'Standard Practice',
+      testType: 'standard',
+      durationMinutes: 30,
+      questionText: 'Question 1: What is 2 + 2?',
+      answerText: '1. C'
+    });
+
+    await component.publishTest();
+
+    const publishedPayload = repository.publishTest.mock.calls.at(-1)?.[0];
+    expect(publishedPayload).toEqual({
+      code: '654321',
+      title: 'Standard Practice',
+      testType: 'standard',
+      durationMinutes: 30,
+      questions: [
+        {
+          number: 1,
+          prompt: 'What is 2 + 2?',
+          options: { A: '2', B: '3', C: '4', D: '5' }
+        }
+      ],
+      answerKey: { 1: 'C' },
+      createdAtIso: expect.any(String)
+    });
+    expect(publishedPayload).not.toHaveProperty('passages');
+  });
+
   it('shows a styled delete confirmation popup before removing a test', async () => {
     const fixture = TestBed.createComponent(TeacherPageComponent);
 
