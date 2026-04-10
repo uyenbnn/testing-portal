@@ -13,6 +13,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm i -g npm@11.6.2
       - run: npm ci
       - run: npm run build -- --configuration production
       - name: Write Firebase service account file
