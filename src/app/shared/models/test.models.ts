@@ -1,16 +1,27 @@
 export type OptionKey = 'A' | 'B' | 'C' | 'D';
+export type TestType = 'standard' | 'reading';
+
+export interface ReadingPassage {
+  id: string;
+  title: string;
+  content: string;
+  questionNumbers: number[];
+}
 
 export interface TestQuestion {
   number: number;
   prompt: string;
   options: Record<OptionKey, string>;
+  passageId?: string;
 }
 
 export interface PublishedTest {
   code: string;
   title: string;
+  testType: TestType;
   durationMinutes: number;
   questions: TestQuestion[];
+  passages?: ReadingPassage[];
   answerKey: Record<number, OptionKey>;
   createdAtIso: string;
 }
@@ -44,6 +55,7 @@ export interface ParseError {
 
 export interface ParseResult {
   questions: TestQuestion[];
+  passages: ReadingPassage[];
   answerKey: Record<number, OptionKey>;
   errors: ParseError[];
 }

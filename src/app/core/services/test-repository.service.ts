@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { getApps, initializeApp } from 'firebase/app';
 import { Database, get, getDatabase, ref, remove, set } from 'firebase/database';
 import { environment } from '../../../environments/environment';
-import { OptionKey, PublishedTest, TestQuestion } from '../../shared/models/test.models';
+import { OptionKey, PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../shared/models/test.models';
 
 @Injectable({ providedIn: 'root' })
 export class TestRepositoryService {
@@ -98,6 +98,7 @@ export class TestRepositoryService {
     }
 
     const candidate = value as Partial<PublishedTest>;
+    const testType = this.normalizeTestType(candidate.testType);
     if (
       typeof candidate.code !== 'string' ||
       candidate.code !== expectedCode ||
@@ -110,28 +111,35 @@ export class TestRepositoryService {
       return null;
     }
 
-    const questions = candidate.questions.filter((question) => this.isQuestion(question));
+    const questions = candidate.questions.filter((question) => this.isQuestion(question, testType));
     if (questions.length !== candidate.questions.length) {
+      return null;
+    }
+
+    const passages = this.normalizePassages(candidate.passages, questions, testType);
+    if (testType === 'reading' && passages === null) {
       return null;
     }
 
     return {
       code: candidate.code,
       title: candidate.title,
+      testType,
       durationMinutes: candidate.durationMinutes,
       questions,
+      passages: passages ?? undefined,
       answerKey: candidate.answerKey,
       createdAtIso: candidate.createdAtIso
     };
   }
 
-  private isQuestion(question: unknown): question is TestQuestion {
+  private isQuestion(question: unknown, testType: TestType): question is TestQuestion {
     if (!question || typeof question !== 'object') {
       return false;
     }
 
     const candidate = question as Partial<TestQuestion>;
-    return (
+    const hasBaseShape = (
       typeof candidate.number === 'number' &&
       typeof candidate.prompt === 'string' &&
       !!candidate.options &&
@@ -140,6 +148,12 @@ export class TestRepositoryService {
       typeof candidate.options.C === 'string' &&
       typeof candidate.options.D === 'string'
     );
+
+    if (!hasBaseShape) {
+      return false;
+    }
+
+    return testType === 'reading' ? typeof candidate.passageId === 'string' : true;
   }
 
   private isAnswerKey(answerKey: unknown): answerKey is Record<number, OptionKey> {
@@ -148,5 +162,57 @@ export class TestRepositoryService {
     }
 
     return Object.values(answerKey).every((option) => option === 'A' || option === 'B' || option === 'C' || option === 'D');
+  }
+
+  private normalizeTestType(testType: PublishedTest['testType'] | undefined): TestType {
+    return testType === 'reading' ? 'reading' : 'standard';
+  }
+
+  private normalizePassages(
+    candidatePassages: PublishedTest['passages'] | undefined,
+    questions: TestQuestion[],
+    testType: TestType
+  ): ReadingPassage[] | null {
+    if (testType !== 'reading') {
+      return undefined as never;
+    }
+
+    if (!Array.isArray(candidatePassages) || candidatePassages.length === 0) {
+      return null;
+    }
+
+    const passages = candidatePassages.filter((passage) => this.isPassage(passage));
+    if (passages.length !== candidatePassages.length) {
+      return null;
+    }
+
+    const passageIds = new Set(passages.map((passage) => passage.id));
+    if (questions.some((question) => !question.passageId || !passageIds.has(question.passageId))) {
+      return null;
+    }
+
+    return passages.map((passage) => ({
+      id: passage.id,
+      title: passage.title,
+      content: passage.content,
+      questionNumbers: questions
+        .filter((question) => question.passageId === passage.id)
+        .map((question) => question.number)
+    }));
+  }
+
+  private isPassage(passage: unknown): passage is ReadingPassage {
+    if (!passage || typeof passage !== 'object') {
+      return false;
+    }
+
+    const candidate = passage as Partial<ReadingPassage>;
+    return (
+      typeof candidate.id === 'string' &&
+      typeof candidate.title === 'string' &&
+      typeof candidate.content === 'string' &&
+      Array.isArray(candidate.questionNumbers) &&
+      candidate.questionNumbers.every((number) => typeof number === 'number')
+    );
   }
 }

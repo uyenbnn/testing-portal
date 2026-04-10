@@ -28,25 +28,59 @@
       <h2>{{ activeTest()?.title }}</h2>
       <p class="timer" [class.warning]="remainingSeconds() <= 60">Time left: {{ timeLabel() }}</p>
 
-      <div class="question-list">
-        @for (question of activeTest()!.questions; track question.number) {
-          <article class="question-card">
-            <h3>Question {{ question.number }}</h3>
-            <p>{{ question.prompt }}</p>
-            <div class="options">
-              @for (option of optionKeys; track option) {
-                <button
-                  type="button"
-                  class="option-btn"
-                  [class.selected]="answers()[question.number] === option"
-                  (click)="selectOption(question.number, option)">
-                  {{ option }}. {{ question.options[option] }}
-                </button>
-              }
-            </div>
-          </article>
-        }
-      </div>
+      @if (isReadingTest()) {
+        <div class="reading-list">
+          @for (group of readingPassageGroups(); track group.passage.id) {
+            <article class="reading-group">
+              <section class="passage-card">
+                <p class="passage-label">Passage {{ group.passage.id }}</p>
+                <h3>{{ group.passage.title }}</h3>
+                <p class="passage-copy">{{ group.passage.content }}</p>
+              </section>
+
+              <div class="question-list question-list--reading">
+                @for (question of group.questions; track question.number) {
+                  <article class="question-card">
+                    <h3>Question {{ question.number }}</h3>
+                    <p>{{ question.prompt }}</p>
+                    <div class="options">
+                      @for (option of optionKeys; track option) {
+                        <button
+                          type="button"
+                          class="option-btn"
+                          [class.selected]="answers()[question.number] === option"
+                          (click)="selectOption(question.number, option)">
+                          {{ option }}. {{ question.options[option] }}
+                        </button>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="question-list">
+          @for (question of activeTest()!.questions; track question.number) {
+            <article class="question-card">
+              <h3>Question {{ question.number }}</h3>
+              <p>{{ question.prompt }}</p>
+              <div class="options">
+                @for (option of optionKeys; track option) {
+                  <button
+                    type="button"
+                    class="option-btn"
+                    [class.selected]="answers()[question.number] === option"
+                    (click)="selectOption(question.number, option)">
+                    {{ option }}. {{ question.options[option] }}
+                  </button>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
 
       <button type="button" class="primary" (click)="submit()">Submit</button>
     </section>

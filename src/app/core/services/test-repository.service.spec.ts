@@ -59,6 +59,7 @@ describe('TestRepositoryService', () => {
         '111111': {
           code: '111111',
           title: 'Algebra Quiz',
+          testType: 'standard',
           durationMinutes: 25,
           questions: [
             {
@@ -88,6 +89,7 @@ describe('TestRepositoryService', () => {
       {
         code: '111111',
         title: 'Algebra Quiz',
+        testType: 'standard',
         durationMinutes: 25,
         questions: [
           {
@@ -106,6 +108,7 @@ describe('TestRepositoryService', () => {
     await service.publishTest({
       code: '333333',
       title: 'Physics',
+      testType: 'standard',
       durationMinutes: 30,
       questions: [
         {
@@ -129,5 +132,112 @@ describe('TestRepositoryService', () => {
     expect(firebaseMocks.removeMock).toHaveBeenCalledWith({ path: 'tests/333333' });
     expect(found).toBeNull();
     expect(firebaseMocks.getMock).toHaveBeenCalledWith({ path: 'tests/333333' });
+  });
+
+  it('normalizes legacy tests without a test type to standard', async () => {
+    firebaseMocks.getMock.mockResolvedValue({
+      exists: () => true,
+      val: () => ({
+        code: '444444',
+        title: 'Legacy Quiz',
+        durationMinutes: 20,
+        questions: [
+          {
+            number: 1,
+            prompt: 'Legacy question',
+            options: { A: 'A1', B: 'B1', C: 'C1', D: 'D1' }
+          }
+        ],
+        answerKey: { 1: 'C' },
+        createdAtIso: '2026-04-10T11:00:00.000Z'
+      })
+    } as never);
+
+    const test = await service.findByCode('444444');
+
+    expect(test).toEqual({
+      code: '444444',
+      title: 'Legacy Quiz',
+      testType: 'standard',
+      durationMinutes: 20,
+      questions: [
+        {
+          number: 1,
+          prompt: 'Legacy question',
+          options: { A: 'A1', B: 'B1', C: 'C1', D: 'D1' }
+        }
+      ],
+      answerKey: { 1: 'C' },
+      createdAtIso: '2026-04-10T11:00:00.000Z'
+    });
+  });
+
+  it('loads a reading test with normalized passage question numbers', async () => {
+    firebaseMocks.getMock.mockResolvedValue({
+      exists: () => true,
+      val: () => ({
+        code: '555555',
+        title: 'Reading Check',
+        testType: 'reading',
+        durationMinutes: 35,
+        questions: [
+          {
+            number: 1,
+            prompt: 'What is the passage mostly about?',
+            passageId: 'A',
+            options: { A: 'Weather', B: 'Migration', C: 'Homework', D: 'Sports' }
+          },
+          {
+            number: 2,
+            prompt: 'Which detail supports the main idea?',
+            passageId: 'A',
+            options: { A: 'Detail 1', B: 'Detail 2', C: 'Detail 3', D: 'Detail 4' }
+          }
+        ],
+        passages: [
+          {
+            id: 'A',
+            title: 'Bird Paths',
+            content: 'Birds travel long distances each year.',
+            questionNumbers: []
+          }
+        ],
+        answerKey: { 1: 'B', 2: 'C' },
+        createdAtIso: '2026-04-10T12:00:00.000Z'
+      })
+    } as never);
+
+    const test = await service.findByCode('555555');
+
+    expect(test).toEqual({
+      code: '555555',
+      title: 'Reading Check',
+      testType: 'reading',
+      durationMinutes: 35,
+      questions: [
+        {
+          number: 1,
+          prompt: 'What is the passage mostly about?',
+          passageId: 'A',
+          options: { A: 'Weather', B: 'Migration', C: 'Homework', D: 'Sports' }
+        },
+        {
+          number: 2,
+          prompt: 'Which detail supports the main idea?',
+          passageId: 'A',
+          options: { A: 'Detail 1', B: 'Detail 2', C: 'Detail 3', D: 'Detail 4' }
+        }
+      ],
+      passages: [
+        {
+          id: 'A',
+          title: 'Bird Paths',
+          content: 'Birds travel long distances each year.',
+          questionNumbers: [1, 2]
+        }
+      ],
+      answerKey: { 1: 'B', 2: 'C' },
+      createdAtIso: '2026-04-10T12:00:00.000Z'
+    });
   });
 });

@@ -3,7 +3,12 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { ScoringService } from '../../core/services/scoring.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
-import { OptionKey, PublishedTest } from '../../shared/models/test.models';
+import { OptionKey, PublishedTest, ReadingPassage, TestQuestion } from '../../shared/models/test.models';
+
+interface PassageQuestionGroup {
+  passage: ReadingPassage;
+  questions: TestQuestion[];
+}
 
 @Component({
   selector: 'app-student-page',
@@ -30,6 +35,8 @@ export class StudentPageComponent implements OnDestroy {
   readonly result = signal<ReturnType<ScoringService['evaluate']> | null>(null);
 
   readonly optionKeys: OptionKey[] = ['A', 'B', 'C', 'D'];
+  readonly isReadingTest = computed(() => this.activeTest()?.testType === 'reading');
+  readonly readingPassageGroups = computed(() => this.toPassageGroups(this.activeTest()));
   readonly timeLabel = computed(() => {
     const total = this.remainingSeconds();
     const mins = Math.floor(total / 60).toString().padStart(2, '0');
@@ -110,5 +117,16 @@ export class StudentPageComponent implements OnDestroy {
       clearInterval(this.timerId);
       this.timerId = null;
     }
+  }
+
+  private toPassageGroups(test: PublishedTest | null): PassageQuestionGroup[] {
+    if (!test || test.testType !== 'reading' || !test.passages?.length) {
+      return [];
+    }
+
+    return test.passages.map((passage) => ({
+      passage,
+      questions: test.questions.filter((question) => question.passageId === passage.id)
+    }));
   }
 }

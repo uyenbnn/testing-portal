@@ -11,6 +11,13 @@
       <label for="title">Test title</label>
       <input id="title" type="text" formControlName="title" />
 
+      <label for="testType">Test type</label>
+      <select id="testType" formControlName="testType">
+        @for (testType of testTypes; track testType.value) {
+          <option [value]="testType.value">{{ testType.label }}</option>
+        }
+      </select>
+
       <label for="durationMinutes">Duration (minutes)</label>
       <input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
 
@@ -59,9 +66,17 @@
 
     <aside class="card">
       <h2>Validation Preview</h2>
+      <p>Selected Type: {{ selectedTestType() === 'reading' ? 'Reading' : 'Standard MCQ' }}</p>
+      @if (selectedTestType() === 'reading') {
+        <p>Detected Passages: {{ previewPassageCount() }}</p>
+      }
       <p>Detected Questions: {{ previewQuestionCount() }}</p>
       <p>Detected Answer Keys: {{ previewAnswerCount() }}</p>
-      <p class="hint">Format: Question N: ... + A./B./C./D. options, and answer lines like 1. A</p>
+      @if (selectedTestType() === 'reading') {
+        <p class="hint">Format: Passage A: Title, then the passage text, then Question N blocks with A./B./C./D. options.</p>
+      } @else {
+        <p class="hint">Format: Question N: ... + A./B./C./D. options, and answer lines like 1. A</p>
+      }
     </aside>
   </section>
 
@@ -83,33 +98,51 @@
       <div class="test-list" role="list">
         @for (test of createdTestItems(); track test.code) {
           <article class="test-row" role="listitem">
-            <div class="test-meta">
-              <div class="test-title-row">
-                <h3>{{ test.title }}</h3>
-                <span class="code-pill">{{ test.code }}</span>
+            <button
+              type="button"
+              class="test-open"
+              [attr.aria-label]="'Open details for test ' + test.code"
+              aria-haspopup="dialog"
+              (click)="openTestDetails(test)">
+              <div class="test-meta">
+                <div class="test-title-row">
+                  <h3>{{ test.title }}</h3>
+                  <span class="code-pill">{{ test.code }}</span>
+                </div>
+                <dl class="test-facts">
+                  <div>
+                    <dt>Type</dt>
+                    <dd>{{ test.testTypeLabel }}</dd>
+                  </div>
+                  <div>
+                    <dt>Duration</dt>
+                    <dd>{{ test.durationMinutes }} min</dd>
+                  </div>
+                  <div>
+                    <dt>Questions</dt>
+                    <dd>{{ test.questionCount }}</dd>
+                  </div>
+                  @if (test.testType === 'reading') {
+                    <div>
+                      <dt>Passages</dt>
+                      <dd>{{ test.passageCount }}</dd>
+                    </div>
+                  }
+                  <div>
+                    <dt>Created</dt>
+                    <dd>{{ test.createdAtLabel }}</dd>
+                  </div>
+                </dl>
               </div>
-              <dl class="test-facts">
-                <div>
-                  <dt>Duration</dt>
-                  <dd>{{ test.durationMinutes }} min</dd>
-                </div>
-                <div>
-                  <dt>Questions</dt>
-                  <dd>{{ test.questionCount }}</dd>
-                </div>
-                <div>
-                  <dt>Created</dt>
-                  <dd>{{ test.createdAtLabel }}</dd>
-                </div>
-              </dl>
-            </div>
+            </button>
 
             <button
               type="button"
               class="danger"
               [disabled]="isDeleting(test.code)"
               [attr.aria-label]="'Delete test ' + test.code"
-              (click)="deleteTest(test)">
+              aria-haspopup="dialog"
+              (click)="requestDeleteTest(test)">
               {{ isDeleting(test.code) ? 'Deleting...' : 'Delete' }}
             </button>
           </article>
@@ -117,4 +150,119 @@
       </div>
     }
   </section>
+
+  @if (selectedTest(); as test) {
+    <section class="modal-backdrop" (click)="closeSelectedTest()">
+      <div
+        class="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="test-detail-title"
+        (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <p class="modal-kicker">Test Details</p>
+            <h2 id="test-detail-title">{{ test.title }}</h2>
+          </div>
+          <button type="button" class="ghost" (click)="closeSelectedTest()">Close</button>
+        </div>
+
+        <div class="modal-summary">
+          <p><strong>Code:</strong> {{ test.code }}</p>
+          <p><strong>Type:</strong> {{ test.testTypeLabel }}</p>
+          <p><strong>Duration:</strong> {{ test.durationMinutes }} minutes</p>
+          <p><strong>Questions:</strong> {{ test.questionCount }}</p>
+          <p><strong>Created:</strong> {{ test.createdAtLabel }}</p>
+        </div>
+
+        <section class="modal-section">
+          <h3>{{ test.testType === 'reading' ? 'Passages and Questions' : 'Questions' }}</h3>
+          @if (test.testType === 'reading') {
+            <div class="reading-detail-list">
+              @for (group of selectedTestPassageGroups(); track group.passage.id) {
+                <article class="reading-detail-group">
+                  <section class="passage-detail-card">
+                    <p class="modal-kicker">Passage {{ group.passage.id }}</p>
+                    <h4>{{ group.passage.title }}</h4>
+                    <p class="passage-copy">{{ group.passage.content }}</p>
+                  </section>
+
+                  <div class="question-detail-list">
+                    @for (question of group.questions; track question.number) {
+                      <article class="question-detail-card">
+                        <h4>Question {{ question.number }}</h4>
+                        <p>{{ question.prompt }}</p>
+                        <ul>
+                          <li>A. {{ question.options.A }}</li>
+                          <li>B. {{ question.options.B }}</li>
+                          <li>C. {{ question.options.C }}</li>
+                          <li>D. {{ question.options.D }}</li>
+                        </ul>
+                        <p class="answer-badge">Correct answer: {{ test.answerKey[question.number] }}</p>
+                      </article>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="question-detail-list">
+              @for (question of test.questions; track question.number) {
+                <article class="question-detail-card">
+                  <h4>Question {{ question.number }}</h4>
+                  <p>{{ question.prompt }}</p>
+                  <ul>
+                    <li>A. {{ question.options.A }}</li>
+                    <li>B. {{ question.options.B }}</li>
+                    <li>C. {{ question.options.C }}</li>
+                    <li>D. {{ question.options.D }}</li>
+                  </ul>
+                  <p class="answer-badge">Correct answer: {{ test.answerKey[question.number] }}</p>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      </div>
+    </section>
+  }
+
+  @if (pendingDeleteTest(); as test) {
+    <section class="modal-backdrop modal-backdrop--danger" (click)="cancelDeleteRequest()">
+      <div
+        class="confirm-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        aria-describedby="delete-confirm-text"
+        (click)="$event.stopPropagation()">
+        <p class="modal-kicker modal-kicker--danger">Confirm Delete</p>
+        <h2 id="delete-confirm-title">Delete this test?</h2>
+        <p id="delete-confirm-text" class="confirm-copy">
+          <strong>{{ test.title }}</strong> with code <strong>{{ test.code }}</strong> will be removed from the portal.
+          Students will no longer be able to join it.
+        </p>
+
+        <dl class="confirm-facts">
+          <div>
+            <dt>Duration</dt>
+            <dd>{{ test.durationMinutes }} min</dd>
+          </div>
+          <div>
+            <dt>Questions</dt>
+            <dd>{{ test.questions.length }}</dd>
+          </div>
+        </dl>
+
+        <div class="confirm-actions">
+          <button type="button" class="ghost" [disabled]="isDeleting(test.code)" (click)="cancelDeleteRequest()">
+            Cancel
+          </button>
+          <button type="button" class="danger" [disabled]="isDeleting(test.code)" (click)="deleteTest(test)">
+            {{ isDeleting(test.code) ? 'Deleting...' : 'Delete test' }}
+          </button>
+        </div>
+      </div>
+    </section>
+  }
 </main>
