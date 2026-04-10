@@ -1,4 +1,4 @@
-# Testing Portal
+# Testing Portal Readme
 
 Testing Portal is a role-based web app (Teacher + Student) to create and take timed tests without login in MVP.
 
