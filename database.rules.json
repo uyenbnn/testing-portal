@@ -6,12 +6,15 @@
       ".read": true,
       "$code": {
         ".read": true,
-          ".write": "!newData.exists() || newData.hasChildren(['code','title','durationMinutes','questions','answerKey','createdAtIso'])",
+        ".write": "!newData.exists() || newData.hasChildren(['code','title','testType','durationMinutes','questions','answerKey','createdAtIso'])",
         "code": {
           ".validate": "newData.isString() && newData.val() === $code"
         },
         "title": {
           ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "testType": {
+          ".validate": "newData.isString() && (newData.val() === 'standard' || newData.val() === 'reading')"
         },
         "durationMinutes": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 300"
@@ -24,6 +27,9 @@
         },
         "answerKey": {
           ".validate": "newData.exists()"
+        },
+        "passages": {
+          ".validate": "(newData.parent().child('testType').val() === 'standard' && !newData.exists()) || (newData.parent().child('testType').val() === 'reading' && newData.exists() && newData.hasChildren())"
         },
         "$other": {
           ".validate": false
