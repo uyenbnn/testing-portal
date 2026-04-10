@@ -13,7 +13,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          registry-url: https://registry.npmjs.org
       - run: npm i -g npm@11.6.2
+      - run: npm config set registry https://registry.npmjs.org
       - run: npm ci
       - run: npm run build -- --configuration production
       - name: Write Firebase service account file
