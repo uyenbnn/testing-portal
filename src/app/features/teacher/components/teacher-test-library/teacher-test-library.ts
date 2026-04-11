@@ -10,9 +10,9 @@ import { CreatedTestItem, PassageQuestionGroup } from '../../teacher-page.models
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeacherTestLibrary {
-  readonly sectionTitle = input('Created Tests');
-  readonly sectionHint = input('All published tests are listed here and can be removed from the portal.');
-  readonly emptyText = input('No tests published yet.');
+  readonly sectionTitle = input('Các bài kiểm tra đã tạo'); // "Created tests"
+  readonly sectionHint = input('Tất cả các bài kiểm tra đã xuất bản được liệt kê ở đây và có thể bị xóa khỏi cổng thông tin.');
+  readonly emptyText = input('Chưa có bài kiểm tra nào được xuất bản.');
   readonly showCreator = input(false);
   readonly isLoadingTests = input(true);
   readonly listError = input('');

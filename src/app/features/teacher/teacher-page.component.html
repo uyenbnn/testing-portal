@@ -1,6 +1,6 @@
 <main class="page">
   <header class="header">
-    <a routerLink="/" class="back-link">Back</a>
+    <a routerLink="/" class="back-link">Quay lại</a>
     <h1>Teacher Workspace</h1>
   </header>
 
@@ -14,16 +14,16 @@
     @if (accessState() === 'approved') {
       <div class="teacher-session-card">
         <p class="teacher-session-name">{{ teacherDisplayName() }}</p>
-        <p class="teacher-session-copy">Username: {{ teacherProfile()?.username }}</p>
-        <button type="button" class="secondary-button" (click)="logoutTeacher()">Log Out</button>
+        <p class="teacher-session-copy">Tên đăng nhập: {{ teacherProfile()?.username }}</p>
+        <button type="button" class="secondary-button" (click)="logoutTeacher()">Đăng xuất</button>
       </div>
     }
   </section>
 
   @if (accessState() === 'loading') {
     <section class="status-card" aria-live="polite">
-      <h3>Checking your session</h3>
-      <p>Loading your teacher account and approval status.</p>
+      <h3>Đang kiểm tra phiên của bạn</h3>
+      <p>Đang tải tài khoản giáo viên và trạng thái phê duyệt của bạn.</p>
     </section>
   } @else if (accessState() === 'signed-out') {
     <section class="auth-shell">
@@ -33,45 +33,45 @@
           class="auth-mode-button"
           [class.auth-mode-button--active]="authMode() === 'login'"
           (click)="setAuthMode('login')">
-          Log In
+          Đăng nhập
         </button>
         <button
           type="button"
           class="auth-mode-button"
           [class.auth-mode-button--active]="authMode() === 'signup'"
           (click)="setAuthMode('signup')">
-          Create Account
+          Tạo tài khoản
         </button>
       </nav>
 
       <div class="auth-grid">
         <section class="auth-card">
           @if (authMode() === 'login') {
-            <h3>Teacher Login</h3>
-            <p>Use your approved username and password to enter the workspace.</p>
+            <h3>Đăng nhập giáo viên</h3>
+            <p>Sử dụng tên đăng nhập và mật khẩu đã được phê duyệt để vào không gian làm việc.</p>
 
             <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="loginTeacher()">
               <label class="field">
-                <span>Username</span>
+                <span>Tên đăng nhập</span>
                 <input type="text" formControlName="username" autocomplete="username" />
               </label>
 
               <label class="field">
-                <span>Password</span>
+                <span>Mật khẩu</span>
                 <input type="password" formControlName="password" autocomplete="current-password" />
               </label>
 
               <button type="submit" class="primary-button" [disabled]="isAuthenticating()">
-                {{ isAuthenticating() ? 'Signing In...' : 'Log In' }}
+                {{ isAuthenticating() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
               </button>
             </form>
           } @else {
-            <h3>Create Teacher Account</h3>
-            <p>New teacher accounts are stored in the system and must be approved by the admin.</p>
+            <h3>Tạo tài khoản giáo viên</h3>
+            <p>Tài khoản giáo viên mới được lưu trữ trong hệ thống và phải được quản trị viên phê duyệt.</p>
 
             <form class="auth-form auth-form--signup" [formGroup]="signupForm" (ngSubmit)="signUpTeacher()">
               <label class="field">
-                <span>First Name</span>
+                <span>Họ</span>
                 <input type="text" formControlName="firstName" autocomplete="given-name" />
                 @if (hasSignupFieldError('firstName')) {
                   <small class="field-error">{{ getSignupFieldMessage('firstName') }}</small>
@@ -79,7 +79,7 @@
               </label>
 
               <label class="field">
-                <span>Last Name</span>
+                <span>Tên</span>
                 <input type="text" formControlName="lastName" autocomplete="family-name" />
                 @if (hasSignupFieldError('lastName')) {
                   <small class="field-error">{{ getSignupFieldMessage('lastName') }}</small>
@@ -87,7 +87,7 @@
               </label>
 
               <label class="field">
-                <span>Gender</span>
+                <span>Giới tính</span>
                 <select formControlName="gender">
                   @for (option of signupGenderOptions; track option.value) {
                     <option [value]="option.value">{{ option.label }}</option>
@@ -99,7 +99,7 @@
               </label>
 
               <label class="field">
-                <span>Phone Number</span>
+                <span>Số điện thoại</span>
                 <input type="tel" formControlName="phoneNumber" autocomplete="tel" />
                 @if (hasSignupFieldError('phoneNumber')) {
                   <small class="field-error">{{ getSignupFieldMessage('phoneNumber') }}</small>
@@ -115,7 +115,7 @@
               </label>
 
               <label class="field">
-                <span>Username</span>
+                <span>Tên đăng nhập</span>
                 <input type="text" formControlName="username" autocomplete="username" />
                 @if (hasSignupFieldError('username')) {
                   <small class="field-error">{{ getSignupFieldMessage('username') }}</small>
@@ -123,7 +123,7 @@
               </label>
 
               <label class="field">
-                <span>Password</span>
+                <span>Mật khẩu</span>
                 <input type="password" formControlName="password" autocomplete="new-password" />
                 @if (hasSignupFieldError('password')) {
                   <small class="field-error">{{ getSignupFieldMessage('password') }}</small>
@@ -131,7 +131,7 @@
               </label>
 
               <button type="submit" class="primary-button field--full" [disabled]="isAuthenticating()">
-                {{ isAuthenticating() ? 'Creating Account...' : 'Create Account' }}
+                {{ isAuthenticating() ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
               </button>
             </form>
           }
@@ -146,11 +146,11 @@
         </section>
 
         <aside class="auth-info-card">
-          <h3>How Teacher Access Works</h3>
+          <h3>Cách truy cập của Giáo viên hoạt động</h3>
           <ol>
-            <li>Create a teacher account with your profile information.</li>
-            <li>The admin reviews and approves or rejects the account.</li>
-            <li>After approval, log in with your username and password to publish tests.</li>
+            <li>Tạo tài khoản giáo viên với thông tin hồ sơ của bạn.</li>
+            <li>Quản trị viên xem xét và phê duyệt hoặc từ chối tài khoản.</li>
+            <li>Sau khi được phê duyệt, đăng nhập bằng tên đăng nhập và mật khẩu của bạn để xuất bản bài kiểm tra.</li>
           </ol>
         </aside>
       </div>
@@ -205,7 +205,7 @@
         id="created-panel"
         aria-labelledby="created-tab">
         <app-teacher-test-library
-          sectionHint="Only the tests published from your teacher account are listed here."
+          sectionHint="Chỉ các bài kiểm tra được xuất bản từ tài khoản giáo viên của bạn mới được liệt kê ở đây."
           [isLoadingTests]="isLoadingTests()"
           [listError]="listError()"
           [createdTestItems]="createdTestItems()"
@@ -226,8 +226,8 @@
       <p>{{ teacherStatusDescription() }}</p>
 
       <div class="status-actions">
-        <button type="button" class="primary-button" (click)="refreshApprovalStatus()">Refresh Status</button>
-        <button type="button" class="secondary-button" (click)="logoutTeacher()">Log Out</button>
+        <button type="button" class="primary-button" (click)="refreshApprovalStatus()">Cập nhật trạng thái</button>
+        <button type="button" class="secondary-button" (click)="logoutTeacher()">Đăng xuất</button>
       </div>
 
       @if (authError()) {

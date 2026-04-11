@@ -7,7 +7,7 @@
 	</div>
 
 	@if (isLoadingTests()) {
-		<p class="hint">Loading created tests...</p>
+		<p class="hint">Đang tải các bài kiểm tra đã tạo...</p>
 	} @else if (listError()) {
 		<p class="error-text">{{ listError() }}</p>
 	} @else if (createdTestItems().length === 0) {
@@ -29,30 +29,30 @@
 							</div>
 							<dl class="test-facts">
 								<div>
-									<dt>Type</dt>
+									<dt>Loại</dt>
 									<dd>{{ test.testTypeLabel }}</dd>
 								</div>
 								<div>
-									<dt>Duration</dt>
-									<dd>{{ test.durationMinutes }} min</dd>
+									<dt>Thời lượng</dt>
+									<dd>{{ test.durationMinutes }} phút</dd>
 								</div>
 								<div>
-									<dt>Questions</dt>
+									<dt>Câu hỏi</dt>
 									<dd>{{ test.questionCount }}</dd>
 								</div>
 								@if (test.testType === 'reading') {
 									<div>
-										<dt>Passages</dt>
+										<dt>Đoạn văn</dt>
 										<dd>{{ test.passageCount }}</dd>
 									</div>
 								}
 								<div>
-									<dt>Created</dt>
+									<dt>Ngày tạo</dt>
 									<dd>{{ test.createdAtLabel }}</dd>
 								</div>
 								@if (showCreator()) {
 									<div>
-										<dt>Creator</dt>
+										<dt>Người tạo</dt>
 										<dd>{{ test.creatorNameLabel }}</dd>
 									</div>
 								}
@@ -67,7 +67,7 @@
 						[attr.aria-label]="'Delete test ' + test.code"
 						aria-haspopup="dialog"
 						(click)="requestDeleteTest.emit(test)">
-						{{ isDeleting(test.code) ? 'Deleting...' : 'Delete' }}
+						{{ isDeleting(test.code) ? 'Đang xóa...' : 'Xóa' }}
 					</button>
 				</article>
 			}
@@ -96,20 +96,20 @@
 				<p><strong>Type:</strong> {{ test.testTypeLabel }}</p>
 				<p><strong>Duration:</strong> {{ test.durationMinutes }} minutes</p>
 				<p><strong>Questions:</strong> {{ test.questionCount }}</p>
-				<p><strong>Created:</strong> {{ test.createdAtLabel }}</p>
+				<p><strong>Ngày tạo:</strong> {{ test.createdAtLabel }}</p>
 				@if (showCreator()) {
-					<p><strong>Creator:</strong> {{ test.creatorNameLabel }} ({{ test.creatorUsernameLabel }})</p>
+					<p><strong>Người tạo:</strong> {{ test.creatorNameLabel }} ({{ test.creatorUsernameLabel }})</p>
 				}
 			</div>
 
 			<section class="modal-section">
-				<h3>{{ test.testType === 'reading' ? 'Passages and Questions' : 'Questions' }}</h3>
+				<h3>{{ test.testType === 'reading' ? 'Đoạn văn và Câu hỏi' : 'Câu hỏi' }}</h3>
 				@if (test.testType === 'reading') {
 					<div class="reading-detail-list">
 						@for (group of selectedTestPassageGroups(); track group.passage.id) {
 							<article class="reading-detail-group">
 								<section class="passage-detail-card">
-									<p class="modal-kicker">Passage {{ group.passage.id }}</p>
+									<p class="modal-kicker">Đoạn văn {{ group.passage.id }}</p>
 									<h4>{{ group.passage.title }}</h4>
 									<p class="passage-copy">{{ group.passage.content }}</p>
 								</section>
@@ -117,7 +117,7 @@
 								<div class="question-detail-list">
 									@for (question of group.questions; track question.number) {
 										<article class="question-detail-card">
-											<h4>Question {{ question.number }}</h4>
+											<h4>Câu hỏi {{ question.number }}</h4>
 											<p>{{ question.prompt }}</p>
 											<ul>
 												<li>A. {{ question.options.A }}</li>
@@ -125,7 +125,7 @@
 												<li>C. {{ question.options.C }}</li>
 												<li>D. {{ question.options.D }}</li>
 											</ul>
-											<p class="answer-badge">Correct answer: {{ test.answerKey[question.number] }}</p>
+											<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
 										</article>
 									}
 								</div>
@@ -136,7 +136,7 @@
 					<div class="question-detail-list">
 						@for (question of test.questions; track question.number) {
 							<article class="question-detail-card">
-								<h4>Question {{ question.number }}</h4>
+								<h4>Câu hỏi {{ question.number }}</h4>
 								<p>{{ question.prompt }}</p>
 								<ul>
 									<li>A. {{ question.options.A }}</li>
@@ -144,7 +144,7 @@
 									<li>C. {{ question.options.C }}</li>
 									<li>D. {{ question.options.D }}</li>
 								</ul>
-								<p class="answer-badge">Correct answer: {{ test.answerKey[question.number] }}</p>
+								<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
 							</article>
 						}
 					</div>
@@ -163,30 +163,30 @@
 			aria-labelledby="delete-confirm-title"
 			aria-describedby="delete-confirm-text"
 			(click)="$event.stopPropagation()">
-			<p class="modal-kicker modal-kicker--danger">Confirm Delete</p>
-			<h2 id="delete-confirm-title">Delete this test?</h2>
+			<p class="modal-kicker modal-kicker--danger">Xác nhận xóa</p>
+			<h2 id="delete-confirm-title">Xóa bài kiểm tra này?</h2>
 			<p id="delete-confirm-text" class="confirm-copy">
-				<strong>{{ test.title }}</strong> with code <strong>{{ test.code }}</strong> will be removed from the portal.
-				Students will no longer be able to join it.
+				<strong>{{ test.title }}</strong> với mã <strong>{{ test.code }}</strong> sẽ bị xóa khỏi hệ thống.
+				Học sinh sẽ không thể làm bài kiểm tra này.
 			</p>
 
 			<dl class="confirm-facts">
 				<div>
-					<dt>Duration</dt>
-					<dd>{{ test.durationMinutes }} min</dd>
+					<dt>Thời lượng</dt>
+					<dd>{{ test.durationMinutes }} phút</dd>
 				</div>
 				<div>
-					<dt>Questions</dt>
+					<dt>Câu hỏi</dt>
 					<dd>{{ test.questions.length }}</dd>
 				</div>
 			</dl>
 
 			<div class="confirm-actions">
 				<button type="button" class="ghost" [disabled]="isDeleting(test.code)" (click)="cancelDeleteRequest.emit()">
-					Cancel
+					Hủy
 				</button>
 				<button type="button" class="danger" [disabled]="isDeleting(test.code)" (click)="deleteTest.emit(test)">
-					{{ isDeleting(test.code) ? 'Deleting...' : 'Delete test' }}
+					{{ isDeleting(test.code) ? 'Đang xóa...' : 'Xóa bài kiểm tra' }}
 				</button>
 			</div>
 		</div>

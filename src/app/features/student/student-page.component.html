@@ -1,20 +1,20 @@
 <main class="page">
   <header class="header">
-    <a routerLink="/" class="back-link">Back</a>
+    <a routerLink="/" class="back-link">Quay lại</a>
     <h1>Student Workspace</h1>
   </header>
 
   @if (!activeTest()) {
     <section class="card join-card">
-      <h2>Join a Test</h2>
+      <h2>Tham gia Bài kiểm tra</h2>
       <form [formGroup]="joinForm" (ngSubmit)="joinTest()">
-        <label for="testCode">Test code</label>
+        <label for="testCode">Nhập mã bài kiểm tra</label>
         <input id="testCode" formControlName="testCode" maxlength="6" />
 
-        <label for="studentName">Name</label>
+        <label for="studentName">Tên học sinh</label>
         <input id="studentName" formControlName="name" />
 
-        <label for="className">Class</label>
+        <label for="className">Lớp</label>
         <input id="className" formControlName="className" />
 
         <button class="primary" type="submit">Start Test</button>
@@ -26,7 +26,7 @@
   } @else {
     <section class="card test-card">
       <h2>{{ activeTest()?.title }}</h2>
-      <p class="timer" [class.warning]="remainingSeconds() <= 60">Time left: {{ timeLabel() }}</p>
+      <p class="timer" [class.warning]="remainingSeconds() <= 60">Thời gian: {{ timeLabel() }}</p>
 
       @if (isReadingTest()) {
         <div class="reading-list">
@@ -88,9 +88,9 @@
 
   @if (result()) {
     <section class="card result-card" aria-live="polite">
-      <h2>Result</h2>
+      <h2>Kết quả</h2>
       <p><strong>{{ result()!.student.name }}</strong> ({{ result()!.student.className }})</p>
-      <p>Score: {{ result()!.correctAnswers }}/{{ result()!.totalQuestions }} ({{ result()!.percentage }}%)</p>
+      <p>Điểm số: {{ result()!.correctAnswers }}/{{ result()!.totalQuestions }} ({{ result()!.percentage }}%)</p>
     </section>
   }
 </main>

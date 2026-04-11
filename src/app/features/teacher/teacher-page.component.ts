@@ -70,7 +70,7 @@ export class TeacherPageComponent implements OnInit {
   readonly activeTab = signal<TeacherPageTab>('create');
   readonly authMode = signal<TeacherAuthMode>('login');
   readonly authError = signal('');
-  readonly authNotice = signal('Create an account, then wait for admin approval before accessing the teacher workspace.');
+  readonly authNotice = signal('Tạo tài khoản giáo viên hoặc đăng nhập để tạo bài kiểm tra.'); // "Create a teacher account or log in to publish tests."
   readonly hasLoadedApprovedTests = signal(false);
 
   readonly teacherProfile = this.teacherAuth.currentProfile;
@@ -134,20 +134,20 @@ export class TeacherPageComponent implements OnInit {
   );
 
   readonly testTypes: TeacherTestTypeOption[] = [
-    { value: 'standard', label: 'Standard MCQ' },
-    { value: 'reading', label: 'Reading' }
+    { value: 'standard', label: 'MCQ Tiêu chuẩn' },
+    { value: 'reading', label: 'Đọc hiểu' }
   ];
 
   readonly tabs: { id: TeacherPageTab; label: string }[] = [
-    { id: 'create', label: 'Create Test' },
-    { id: 'created', label: 'Created Tests' }
+    { id: 'create', label: 'Tạo bài kiểm tra' },
+    { id: 'created', label: 'Bài kiểm tra đã tạo' }
   ];
 
   readonly signupGenderOptions: { value: TeacherGender; label: string }[] = [
-    { value: 'female', label: 'Female' },
-    { value: 'male', label: 'Male' },
-    { value: 'other', label: 'Other' },
-    { value: 'prefer_not_to_say', label: 'Prefer not to say' }
+    { value: 'female', label: 'Nữ' },
+    { value: 'male', label: 'Nam' },
+    { value: 'other', label: 'Khác' },
+    { value: 'prefer_not_to_say', label: 'Không muốn tiết lộ' }
   ];
 
   constructor() {
@@ -191,7 +191,7 @@ export class TeacherPageComponent implements OnInit {
     this.loginForm.markAllAsTouched();
 
     if (this.loginForm.invalid) {
-      this.authError.set('Enter your username and password to continue.');
+      this.authError.set('Vui lòng nhập tên người dùng và mật khẩu để tiếp tục.');
       return;
     }
 
@@ -203,7 +203,7 @@ export class TeacherPageComponent implements OnInit {
         this.loginForm.controls.password.value
       );
 
-      this.authNotice.set('Login successful. Your workspace opens automatically once your account is approved.');
+      this.authNotice.set('Đăng nhập thành công. Không gian làm việc của bạn sẽ mở tự động khi tài khoản của bạn được phê duyệt.');
       this.loginForm.reset({ username: '', password: '' });
     } catch (error) {
       this.authError.set(this.toAuthErrorMessage(error));
@@ -234,7 +234,7 @@ export class TeacherPageComponent implements OnInit {
         password: this.signupForm.controls.password.value
       });
 
-      this.authNotice.set('Account created. The admin must approve it before you can enter the teacher workspace.');
+      this.authNotice.set('Tài khoản đã được tạo. Quản trị viên phải phê duyệt trước khi bạn có thể vào không gian làm việc của giáo viên.');
       this.signupForm.reset({
         firstName: '',
         lastName: '',
@@ -253,7 +253,7 @@ export class TeacherPageComponent implements OnInit {
 
   async logoutTeacher(): Promise<void> {
     await this.teacherAuth.logout();
-    this.authNotice.set('You have been signed out.');
+    this.authNotice.set('Bạn đã đăng xuất.');
     this.authError.set('');
     this.setAuthMode('login');
   }
@@ -264,7 +264,7 @@ export class TeacherPageComponent implements OnInit {
     try {
       await this.teacherAuth.refreshProfile();
     } catch {
-      this.authError.set('Failed to refresh your approval status. Please try again.');
+      this.authError.set('Không thể làm mới trạng thái phê duyệt của bạn. Vui lòng thử lại.');
     }
   }
 
@@ -417,7 +417,7 @@ export class TeacherPageComponent implements OnInit {
         this.publishedCode.set('');
       }
     } catch {
-      this.listError.set('Failed to delete the selected test. Please try again.');
+      this.listError.set('Không thể xóa bài kiểm tra đã chọn. Vui lòng thử lại.');
     } finally {
       this.setDeleting(test.code, false);
     }
@@ -431,14 +431,14 @@ export class TeacherPageComponent implements OnInit {
       const teacherProfile = this.teacherProfile();
       if (!teacherProfile) {
         this.createdTests.set([]);
-        this.listError.set('Your teacher profile could not be loaded. Please sign out and sign in again.');
+        this.listError.set('Không thể tải hồ sơ giáo viên của bạn. Vui lòng đăng xuất và đăng nhập lại.');
         return;
       }
 
       const tests = await this.repository.listPublishedTestsByCreator(teacherProfile.uid);
       this.createdTests.set(this.sortTests(tests));
     } catch {
-      this.listError.set('Failed to load created tests. Please refresh and try again.');
+      this.listError.set('Không thể tải các bài kiểm tra đã tạo. Vui lòng làm mới và thử lại  .');
     } finally {
       this.isLoadingTests.set(false);
     }
@@ -500,69 +500,69 @@ export class TeacherPageComponent implements OnInit {
   private formatStatusLabel(accessState: TeacherAccessState): string {
     switch (accessState) {
       case 'approved':
-        return 'Approved';
+        return 'Xin chào!';
       case 'pending':
-        return 'Pending Approval';
+        return 'Đang chờ phê duyệt';
       case 'rejected':
-        return 'Rejected';
+        return 'Bị từ chối';
       case 'loading':
-        return 'Loading';
+        return 'Đang tải';
       case 'missing-profile':
-        return 'Account Removed';
+        return 'Tài khoản đã bị xóa';
       default:
-        return 'Not Signed In';
+        return 'Chưa đăng nhập';
     }
   }
 
   private describeAccessState(accessState: TeacherAccessState, profile: TeacherProfile | null): string {
     switch (accessState) {
       case 'approved':
-        return `${profile?.firstName ?? 'Teacher'}, your account is approved and you can manage tests.`;
+        return `${profile?.firstName ?? 'Teacher'}, hãy tạo và quản lý bài kiểm tra ở đây nhé.`;
       case 'pending':
-        return 'Your account is waiting for admin approval. You can sign in again later to check the status.';
+        return 'Tài khoản của bạn đang chờ phê duyệt từ quản trị viên. Bạn có thể đăng nhập lại sau để kiểm tra trạng thái.';
       case 'rejected':
-        return 'Your request was rejected. Contact the admin if you need a new account reviewed.';
+        return 'Yêu cầu của bạn đã bị từ chối. Liên hệ với quản trị viên nếu bạn cần xem xét lại tài khoản mới.';
       case 'missing-profile':
-        return 'Your account record is no longer available in the system.';
+        return 'Hồ sơ tài khoản của bạn không còn có sẵn trong hệ thống.';
       case 'loading':
-        return 'Checking your session and approval status.';
+        return 'Đang kiểm tra phiên và trạng thái phê duyệt của bạn.';
       default:
-        return 'Sign in or create a teacher account to access this workspace.';
+        return 'Đăng nhập hoặc tạo tài khoản giáo viên để truy cập không gian làm việc này.';
     }
   }
 
   private toAuthErrorMessage(error: unknown): string {
     if (!(error instanceof Error)) {
-      return 'Authentication failed. Please try again.';
+      return 'Xác thực thất bại. Vui lòng thử lại.';
     }
 
     switch (error.message) {
       case 'USERNAME_TAKEN':
-        return 'That username is already in use. Choose a different username.';
+        return 'Tên người dùng này đã được sử dụng. Vui lòng chọn tên khác.';
       case 'INVALID_CREDENTIALS':
-        return 'Incorrect username or password.';
+        return 'Tên người dùng hoặc mật khẩu không đúng.';
       case 'ACCOUNT_NOT_FOUND':
-        return 'This account is no longer available. Please contact the admin.';
+        return 'Tài khoản này không còn tồn tại. Vui lòng liên hệ với quản trị viên.';
       case 'ACCOUNT_REJECTED':
-        return 'This account was rejected and cannot access the teacher workspace.';
+        return 'Tài khoản này đã bị từ chối và không thể truy cập không gian làm việc của giáo viên.';
       default:
         if (error.message.includes('CONFIGURATION_NOT_FOUND') || error.message.includes('auth/configuration-not-found')) {
-          return 'Firebase Authentication is not configured for this project. In Firebase Console, enable Authentication and turn on the Email/Password sign-in provider.';
+          return 'Firebase Authentication chưa được cấu hình cho dự án này. Trong Firebase Console, bật Authentication và bật nhà cung cấp đăng nhập Email/Password.';
         }
 
         if (error.message.includes('auth/email-already-in-use')) {
-          return 'That email address is already registered.';
+          return 'Địa chỉ email này đã được đăng ký. Vui lòng sử dụng địa chỉ email khác.';
         }
 
         if (error.message.includes('auth/invalid-credential')) {
-          return 'Incorrect username or password.';
+          return 'Tên người dùng hoặc mật khẩu không đúng.';
         }
 
         if (error.message.includes('auth/weak-password')) {
-          return 'Use a stronger password with at least 8 characters.';
+          return 'Sử dụng mật khẩu mạnh hơn với ít nhất 8 ký tự.';
         }
 
-        return 'Authentication failed. Please try again.';
+        return 'Xác thực thất bại. Vui lòng thử lại.';
     }
   }
 
@@ -579,34 +579,34 @@ export class TeacherPageComponent implements OnInit {
     }
 
     if (control.errors['required']) {
-      return 'This field is required.';
+      return 'Trường này là bắt buộc.';
     }
 
     if (control.errors['email']) {
-      return 'Enter a valid email address.';
+      return 'Nhập địa chỉ email hợp lệ.';
     }
 
     if (control.errors['minlength']) {
       const requiredLength = control.errors['minlength']['requiredLength'] as number;
-      return `Use at least ${requiredLength} characters.`;
+      return `Sử dụng ít nhất ${requiredLength} ký tự.`;
     }
 
     if (control.errors['maxlength']) {
       const requiredLength = control.errors['maxlength']['requiredLength'] as number;
-      return `Use no more than ${requiredLength} characters.`;
+      return `Sử dụng không quá ${requiredLength} ký tự.`;
     }
 
     if (control.errors['pattern']) {
       if (fieldName === 'phoneNumber') {
-        return 'Use a valid phone number with digits and optional +, space, parentheses, or -.';
+        return 'Sử dụng số điện thoại hợp lệ với các chữ số và tùy chọn +, khoảng trắng, dấu ngoặc hoặc -.';
       }
 
       if (fieldName === 'username') {
-        return 'Username cannot contain spaces.';
+        return 'Tên người dùng không được chứa khoảng trắng.';
       }
     }
 
-    return 'Enter a valid value.';
+    return 'Nhập giá trị hợp lệ.';
   }
 
   private getSignupValidationMessage(): string {
@@ -625,9 +625,9 @@ export class TeacherPageComponent implements OnInit {
       .map((fieldName) => labels[fieldName]);
 
     if (invalidFields.length === 0) {
-      return 'Complete all required fields with valid information before creating the account.';
+      return 'Vui lòng điền vào tất cả các trường hợp lệ để tạo tài khoản giáo viên.';
     }
 
-    return `Please fix these fields: ${invalidFields.join(', ')}.`;
+    return `Vui lòng sửa các trường sau: ${invalidFields.join(', ')}.`;
   }
 }
