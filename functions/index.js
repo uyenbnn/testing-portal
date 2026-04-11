@@ -6,6 +6,14 @@ const { HttpsError, onCall } = require('firebase-functions/v2/https');
 
 const ADMIN_USERNAME = 'portal@admin';
 const ADMIN_PASSWORD = 'uyen@@Bnn#6768';
+const CALLABLE_OPTIONS = {
+  region: 'us-central1',
+  cors: [
+    'http://localhost:4200',
+    'https://my-testing-portal-26f16.web.app',
+    'https://my-testing-portal-26f16.firebaseapp.com'
+  ]
+};
 
 initializeApp();
 setGlobalOptions({ region: 'us-central1' });
@@ -68,7 +76,7 @@ function toReviewItem(candidate) {
   };
 }
 
-exports.listTeacherAccounts = onCall(async (request) => {
+exports.listTeacherAccounts = onCall(CALLABLE_OPTIONS, async (request) => {
   assertAdminCredentials(request.data);
 
   const snapshot = await getDatabase().ref('teachers').get();
@@ -84,7 +92,7 @@ exports.listTeacherAccounts = onCall(async (request) => {
   return { accounts };
 });
 
-exports.approveTeacherAccount = onCall(async (request) => {
+exports.approveTeacherAccount = onCall(CALLABLE_OPTIONS, async (request) => {
   assertAdminCredentials(request.data);
   const uid = assertUid(request.data?.uid);
   const teacherRef = getDatabase().ref(`teachers/${uid}`);
@@ -103,7 +111,7 @@ exports.approveTeacherAccount = onCall(async (request) => {
   return { success: true };
 });
 
-exports.rejectTeacherAccount = onCall(async (request) => {
+exports.rejectTeacherAccount = onCall(CALLABLE_OPTIONS, async (request) => {
   assertAdminCredentials(request.data);
   const uid = assertUid(request.data?.uid);
   const database = getDatabase();

@@ -10,7 +10,6 @@ Students can access tests without authentication. Teachers must sign up, wait fo
 - Teacher sign-up, login, approval, and test publishing flow.
 - Student flow to join by code, complete a timed test, and see immediate scoring.
 - Firebase Realtime Database persistence for published tests and teacher approval records.
-- Firebase Cloud Functions for privileged teacher approval and rejection.
 - CI + deployment workflow for Firebase Hosting.
 
 ## Installation and Quick Start
@@ -68,7 +67,7 @@ dist/testing-portal/browser
 - Log in with the configured static admin credential.
 - Review pending teacher account requests.
 - Approve teachers so they can access the teacher workspace.
-- Reject teachers and remove their stored account data through Firebase Cloud Functions.
+- Reject teachers and remove their stored profile and username-login data from the database.
 
 ### Student Features
 
@@ -141,7 +140,7 @@ dist/testing-portal/browser
 1. Open /admin.
 2. Log in with the static admin credential.
 3. Review pending teacher account information.
-4. Approve to unlock teacher access, or reject to remove the account.
+4. Approve to unlock teacher access, or reject to remove the account from the app database.
 
 ### Student Workflow
 
@@ -182,19 +181,16 @@ D. 12
 1. Create or select a Firebase project.
 2. Enable Realtime Database for the project.
 3. Enable Email/Password authentication in Firebase Authentication.
-4. Enable Firebase Cloud Functions for the project.
-5. Update Firebase web config in:
+4. Update Firebase web config in:
    - src/environments/environment.ts
    - src/environments/environment.prod.ts
-6. Ensure .firebaserc points to the same Firebase project ID.
-7. Publish database rules from database.rules.json.
-8. Deploy Cloud Functions from the functions directory.
+5. Ensure .firebaserc points to the same Firebase project ID.
+6. Publish database rules from database.rules.json.
 
 ## Deployment
 
 Firebase hosting is configured in firebase.json with:
 
-- functions source: functions
 - public directory: dist/testing-portal/browser
 - SPA rewrite to /index.html
 - database rules file: database.rules.json
@@ -217,3 +213,4 @@ On push to main, deployment workflow builds the app, deploys database rules, and
 
 - Admin auth is intentionally static and client-visible for this MVP.
 - Teacher login uses username lookup plus Firebase Authentication email/password sign-in.
+- On the free Firebase plan, reject removes the teacher from app data and username login but does not delete the underlying Firebase Auth user.

@@ -124,7 +124,7 @@ export class AdminPageComponent {
 				[...response.accounts].sort((left, right) => left.createdAtIso.localeCompare(right.createdAtIso))
 			);
 		} catch {
-			this.dashboardError.set('Failed to load teacher accounts. Make sure the Firebase functions are deployed.');
+			this.dashboardError.set('Failed to load teacher accounts. Check your Firebase database rules and network access.');
 		} finally {
 			this.isLoadingAccounts.set(false);
 		}

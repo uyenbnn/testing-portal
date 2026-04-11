@@ -73,11 +73,17 @@
               <label class="field">
                 <span>First Name</span>
                 <input type="text" formControlName="firstName" autocomplete="given-name" />
+                @if (hasSignupFieldError('firstName')) {
+                  <small class="field-error">{{ getSignupFieldMessage('firstName') }}</small>
+                }
               </label>
 
               <label class="field">
                 <span>Last Name</span>
                 <input type="text" formControlName="lastName" autocomplete="family-name" />
+                @if (hasSignupFieldError('lastName')) {
+                  <small class="field-error">{{ getSignupFieldMessage('lastName') }}</small>
+                }
               </label>
 
               <label class="field">
@@ -87,26 +93,41 @@
                     <option [value]="option.value">{{ option.label }}</option>
                   }
                 </select>
+                @if (hasSignupFieldError('gender')) {
+                  <small class="field-error">{{ getSignupFieldMessage('gender') }}</small>
+                }
               </label>
 
               <label class="field">
                 <span>Phone Number</span>
                 <input type="tel" formControlName="phoneNumber" autocomplete="tel" />
+                @if (hasSignupFieldError('phoneNumber')) {
+                  <small class="field-error">{{ getSignupFieldMessage('phoneNumber') }}</small>
+                }
               </label>
 
               <label class="field field--full">
                 <span>Email</span>
                 <input type="email" formControlName="email" autocomplete="email" />
+                @if (hasSignupFieldError('email')) {
+                  <small class="field-error">{{ getSignupFieldMessage('email') }}</small>
+                }
               </label>
 
               <label class="field">
                 <span>Username</span>
                 <input type="text" formControlName="username" autocomplete="username" />
+                @if (hasSignupFieldError('username')) {
+                  <small class="field-error">{{ getSignupFieldMessage('username') }}</small>
+                }
               </label>
 
               <label class="field">
                 <span>Password</span>
                 <input type="password" formControlName="password" autocomplete="new-password" />
+                @if (hasSignupFieldError('password')) {
+                  <small class="field-error">{{ getSignupFieldMessage('password') }}</small>
+                }
               </label>
 
               <button type="submit" class="primary-button field--full" [disabled]="isAuthenticating()">

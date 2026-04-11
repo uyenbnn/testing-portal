@@ -51,9 +51,9 @@ export class TeacherPageComponent implements OnInit {
     firstName: this.fb.control('', [Validators.required, Validators.maxLength(60)]),
     lastName: this.fb.control('', [Validators.required, Validators.maxLength(60)]),
     gender: this.fb.control<TeacherGender>('prefer_not_to_say', [Validators.required]),
-    phoneNumber: this.fb.control('', [Validators.required, Validators.pattern(/^[0-9+()\s-]{8,20}$/)]),
+    phoneNumber: this.fb.control('', [Validators.required, Validators.pattern(/^[0-9+()\s-]{7,24}$/)]),
     email: this.fb.control('', [Validators.required, Validators.email]),
-    username: this.fb.control('', [Validators.required, Validators.minLength(4), Validators.maxLength(32), Validators.pattern(/^[A-Za-z0-9._-]+$/)]),
+    username: this.fb.control('', [Validators.required, Validators.minLength(4), Validators.maxLength(64), Validators.pattern(/^\S+$/)]),
     password: this.fb.control('', [Validators.required, Validators.minLength(8)])
   });
 
@@ -215,7 +215,7 @@ export class TeacherPageComponent implements OnInit {
     this.signupForm.markAllAsTouched();
 
     if (this.signupForm.invalid) {
-      this.authError.set('Complete all required fields with valid information before creating the account.');
+      this.authError.set(this.getSignupValidationMessage());
       return;
     }
 
@@ -517,6 +517,10 @@ export class TeacherPageComponent implements OnInit {
       case 'ACCOUNT_REJECTED':
         return 'This account was rejected and cannot access the teacher workspace.';
       default:
+        if (error.message.includes('CONFIGURATION_NOT_FOUND') || error.message.includes('auth/configuration-not-found')) {
+          return 'Firebase Authentication is not configured for this project. In Firebase Console, enable Authentication and turn on the Email/Password sign-in provider.';
+        }
+
         if (error.message.includes('auth/email-already-in-use')) {
           return 'That email address is already registered.';
         }
@@ -531,5 +535,70 @@ export class TeacherPageComponent implements OnInit {
 
         return 'Authentication failed. Please try again.';
     }
+  }
+
+  hasSignupFieldError(fieldName: keyof typeof this.signupForm.controls): boolean {
+    const control = this.signupForm.controls[fieldName];
+    return control.invalid && (control.touched || control.dirty);
+  }
+
+  getSignupFieldMessage(fieldName: keyof typeof this.signupForm.controls): string {
+    const control = this.signupForm.controls[fieldName];
+
+    if (!control.errors) {
+      return '';
+    }
+
+    if (control.errors['required']) {
+      return 'This field is required.';
+    }
+
+    if (control.errors['email']) {
+      return 'Enter a valid email address.';
+    }
+
+    if (control.errors['minlength']) {
+      const requiredLength = control.errors['minlength']['requiredLength'] as number;
+      return `Use at least ${requiredLength} characters.`;
+    }
+
+    if (control.errors['maxlength']) {
+      const requiredLength = control.errors['maxlength']['requiredLength'] as number;
+      return `Use no more than ${requiredLength} characters.`;
+    }
+
+    if (control.errors['pattern']) {
+      if (fieldName === 'phoneNumber') {
+        return 'Use a valid phone number with digits and optional +, space, parentheses, or -.';
+      }
+
+      if (fieldName === 'username') {
+        return 'Username cannot contain spaces.';
+      }
+    }
+
+    return 'Enter a valid value.';
+  }
+
+  private getSignupValidationMessage(): string {
+    const labels: Record<keyof typeof this.signupForm.controls, string> = {
+      firstName: 'first name',
+      lastName: 'last name',
+      gender: 'gender',
+      phoneNumber: 'phone number',
+      email: 'email',
+      username: 'username',
+      password: 'password'
+    };
+
+    const invalidFields = (Object.keys(this.signupForm.controls) as Array<keyof typeof this.signupForm.controls>)
+      .filter((fieldName) => this.signupForm.controls[fieldName].invalid)
+      .map((fieldName) => labels[fieldName]);
+
+    if (invalidFields.length === 0) {
+      return 'Complete all required fields with valid information before creating the account.';
+    }
+
+    return `Please fix these fields: ${invalidFields.join(', ')}.`;
   }
 }

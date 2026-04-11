@@ -39,7 +39,7 @@
     "teacherUsernames": {
       "$username": {
         ".read": true,
-        ".write": "auth != null && !data.exists() && newData.hasChildren(['uid','email','username'])",
+        ".write": "(!data.exists() && newData.hasChildren(['uid','email','username'])) || !newData.exists()",
         "uid": {
           ".validate": "newData.isString() && newData.val().length > 0"
         },
@@ -56,8 +56,8 @@
     },
     "teachers": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.hasChildren(['uid','firstName','lastName','gender','phoneNumber','email','username','normalizedUsername','status','createdAtIso'])",
+        ".read": true,
+        ".write": true,
         "uid": {
           ".validate": "newData.isString() && newData.val() === $uid"
         },
@@ -83,16 +83,16 @@
           ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 32"
         },
         "status": {
-          ".validate": "newData.isString() && newData.val() === 'pending'"
+          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'rejected')"
         },
         "createdAtIso": {
           ".validate": "newData.isString()"
         },
         "approvedAtIso": {
-          ".validate": "!newData.exists()"
+          ".validate": "!newData.exists() || newData.isString()"
         },
         "rejectedAtIso": {
-          ".validate": "!newData.exists()"
+          ".validate": "!newData.exists() || newData.isString()"
         },
         "$other": {
           ".validate": false
