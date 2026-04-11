@@ -1,0 +1,134 @@
+.layout {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 1rem;
+}
+
+.card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	padding: 1rem;
+}
+
+form {
+	display: grid;
+	gap: 0.65rem;
+}
+
+label,
+h3 {
+	font-weight: 700;
+	color: #143840;
+	margin: 0;
+	font-size: 0.95rem;
+}
+
+input,
+textarea,
+select {
+	border: 1px solid #b7cfd4;
+	border-radius: 10px;
+	padding: 0.64rem;
+	font: inherit;
+}
+
+select {
+	appearance: none;
+	background-color: #fff;
+	background-image:
+		linear-gradient(45deg, transparent 50%, #0f6a76 50%),
+		linear-gradient(135deg, #0f6a76 50%, transparent 50%),
+		linear-gradient(180deg, #f7fbfc 0%, #edf6f7 100%);
+	background-position:
+		calc(100% - 1.05rem) calc(50% - 0.14rem),
+		calc(100% - 0.75rem) calc(50% - 0.14rem),
+		0 0;
+	background-size:
+		0.34rem 0.34rem,
+		0.34rem 0.34rem,
+		100% 100%;
+	background-repeat: no-repeat;
+	color: #143840;
+	font-weight: 600;
+	padding-right: 2.6rem;
+	cursor: pointer;
+	transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+select:hover {
+	border-color: #8fb9c0;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+	outline: 0;
+	border-color: #0f6a76;
+	box-shadow: 0 0 0 3px rgb(15 106 118 / 0.16);
+}
+
+.template-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 0.35rem;
+}
+
+.primary,
+.ghost {
+	border: 0;
+	border-radius: 10px;
+	padding: 0.6rem 0.85rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.primary {
+	color: #fff;
+	background: #0f6a76;
+	margin-top: 0.25rem;
+	width: fit-content;
+}
+
+.ghost {
+	color: #0f6a76;
+	background: #e7f4f5;
+}
+
+.primary:disabled,
+.ghost:disabled {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.success {
+	color: #0f5f2b;
+	margin: 0;
+	font-weight: 600;
+}
+
+.error-list {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: #8f1d1d;
+}
+
+.field-error-list {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: #b61c1c;
+	font-size: 0.88rem;
+	line-height: 1.35;
+}
+
+.hint {
+	color: #3b555f;
+}
+
+@media (max-width: 900px) {
+	.layout {
+		grid-template-columns: 1fr;
+	}
+}

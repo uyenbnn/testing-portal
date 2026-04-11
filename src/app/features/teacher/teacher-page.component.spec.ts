@@ -76,12 +76,20 @@ describe('TeacherPageComponent', () => {
     }).compileComponents();
   });
 
-  it('renders published tests after loading', async () => {
-    const fixture = TestBed.createComponent(TeacherPageComponent);
-
+  async function openCreatedTestsTab(fixture: ReturnType<typeof TestBed.createComponent<TeacherPageComponent>>): Promise<void> {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+
+    const createdTab = fixture.nativeElement.querySelector('#created-tab') as HTMLButtonElement;
+    createdTab.click();
+    fixture.detectChanges();
+  }
+
+  it('renders published tests after loading', async () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+
+    await openCreatedTestsTab(fixture);
 
     const element = fixture.nativeElement as HTMLElement;
 
@@ -95,9 +103,7 @@ describe('TeacherPageComponent', () => {
   it('deletes a selected test after confirmation', async () => {
     const fixture = TestBed.createComponent(TeacherPageComponent);
 
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await openCreatedTestsTab(fixture);
 
     const button = fixture.nativeElement.querySelector('[aria-label="Delete test 123456"]') as HTMLButtonElement;
     button.click();
@@ -117,9 +123,7 @@ describe('TeacherPageComponent', () => {
   it('opens a popup detail view for a selected test', async () => {
     const fixture = TestBed.createComponent(TeacherPageComponent);
 
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await openCreatedTestsTab(fixture);
 
     const openButton = fixture.nativeElement.querySelector('[aria-label="Open details for test 123456"]') as HTMLButtonElement;
     openButton.click();
@@ -253,9 +257,7 @@ describe('TeacherPageComponent', () => {
   it('shows a styled delete confirmation popup before removing a test', async () => {
     const fixture = TestBed.createComponent(TeacherPageComponent);
 
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await openCreatedTestsTab(fixture);
 
     const deleteButton = fixture.nativeElement.querySelector('[aria-label="Delete test 123456"]') as HTMLButtonElement;
     deleteButton.click();
@@ -266,5 +268,24 @@ describe('TeacherPageComponent', () => {
     expect(element.textContent).toContain('Delete this test?');
     expect(element.textContent).toContain('Students will no longer be able to join it.');
     expect(repository.deleteTest).not.toHaveBeenCalled();
+  });
+
+  it('shows the create tab by default and switches to created tests on demand', async () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Create a Test');
+    expect(element.textContent).not.toContain('Midterm Review');
+
+    const createdTab = element.querySelector('#created-tab') as HTMLButtonElement;
+    createdTab.click();
+    fixture.detectChanges();
+
+    expect(element.textContent).toContain('Created Tests');
+    expect(element.textContent).toContain('Midterm Review');
   });
 });

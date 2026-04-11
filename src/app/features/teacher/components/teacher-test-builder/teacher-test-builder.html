@@ -1,0 +1,75 @@
+<section class="layout">
+	<form class="card" [formGroup]="form()" (ngSubmit)="publishTest.emit()">
+		<h2>Create a Test</h2>
+
+		<label for="title">Test title</label>
+		<input id="title" type="text" formControlName="title" />
+
+		<label for="testType">Test type</label>
+		<select id="testType" formControlName="testType">
+			@for (testType of testTypes(); track testType.value) {
+				<option [value]="testType.value">{{ testType.label }}</option>
+			}
+		</select>
+
+		<label for="durationMinutes">Duration (minutes)</label>
+		<input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
+
+		<div class="template-head">
+			<h3>Question template (paste plain text)</h3>
+			<button type="button" class="ghost" (click)="useQuestionTemplate.emit()">Use sample</button>
+		</div>
+		<textarea rows="12" formControlName="questionText"></textarea>
+		@if (questionErrors().length > 0) {
+			<ul class="field-error-list" aria-live="polite">
+				@for (error of questionErrors(); track error.message) {
+					<li>{{ error.message }}</li>
+				}
+			</ul>
+		}
+
+		<div class="template-head">
+			<h3>Answer key template (paste plain text)</h3>
+			<button type="button" class="ghost" (click)="useAnswerTemplate.emit()">Use sample</button>
+		</div>
+		<textarea rows="6" formControlName="answerText"></textarea>
+		@if (answerErrors().length > 0) {
+			<ul class="field-error-list" aria-live="polite">
+				@for (error of answerErrors(); track error.message) {
+					<li>{{ error.message }}</li>
+				}
+			</ul>
+		}
+
+		<button class="primary" type="submit" [disabled]="isPublishing()">
+			{{ isPublishing() ? 'Publishing...' : 'Publish test' }}
+		</button>
+
+		@if (publishedCode()) {
+			<p class="success">Published. Test code: <strong>{{ publishedCode() }}</strong></p>
+		}
+
+		@if (errors().length > 0) {
+			<ul class="error-list" aria-live="polite">
+				@for (error of errors(); track error.message) {
+					<li>{{ error.message }}</li>
+				}
+			</ul>
+		}
+	</form>
+
+	<aside class="card">
+		<h2>Validation Preview</h2>
+		<p>Selected Type: {{ selectedTestType() === 'reading' ? 'Reading' : 'Standard MCQ' }}</p>
+		@if (selectedTestType() === 'reading') {
+			<p>Detected Passages: {{ previewPassageCount() }}</p>
+		}
+		<p>Detected Questions: {{ previewQuestionCount() }}</p>
+		<p>Detected Answer Keys: {{ previewAnswerCount() }}</p>
+		@if (selectedTestType() === 'reading') {
+			<p class="hint">Format: Passage A: Title, then the passage text, then Question N blocks with A./B./C./D. options.</p>
+		} @else {
+			<p class="hint">Format: Question N: ... + A./B./C./D. options, and answer lines like 1. A</p>
+		}
+	</aside>
+</section>

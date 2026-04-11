@@ -7,22 +7,15 @@ import { TestCodeService } from '../../core/services/test-code.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
 import { ParseError, PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../shared/models/test.models';
+import { TeacherTestBuilder } from './components/teacher-test-builder/teacher-test-builder';
+import { TeacherTestLibrary } from './components/teacher-test-library/teacher-test-library';
+import { CreatedTestItem, PassageQuestionGroup, TeacherTestTypeOption } from './teacher-page.models';
 
-interface CreatedTestItem extends PublishedTest {
-  questionCount: number;
-  passageCount: number;
-  createdAtLabel: string;
-  testTypeLabel: string;
-}
-
-interface PassageQuestionGroup {
-  passage: ReadingPassage;
-  questions: TestQuestion[];
-}
+type TeacherPageTab = 'create' | 'created';
 
 @Component({
   selector: 'app-teacher-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TeacherTestBuilder, TeacherTestLibrary],
   templateUrl: './teacher-page.component.html',
   styleUrl: './teacher-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +46,7 @@ export class TeacherPageComponent implements OnInit {
   readonly deletingCodes = signal<Record<string, boolean>>({});
   readonly selectedTest = signal<CreatedTestItem | null>(null);
   readonly pendingDeleteTest = signal<PublishedTest | null>(null);
+  readonly activeTab = signal<TeacherPageTab>('create');
 
   readonly formValue = toSignal(
     this.form.valueChanges.pipe(startWith(this.form.getRawValue())),
@@ -89,13 +83,27 @@ export class TeacherPageComponent implements OnInit {
     }))
   );
 
-  readonly testTypes: { value: TestType; label: string }[] = [
+  readonly testTypes: TeacherTestTypeOption[] = [
     { value: 'standard', label: 'Standard MCQ' },
     { value: 'reading', label: 'Reading' }
   ];
 
+  readonly tabs: { id: TeacherPageTab; label: string }[] = [
+    { id: 'create', label: 'Create Test' },
+    { id: 'created', label: 'Created Tests' }
+  ];
+
   ngOnInit(): void {
     void this.loadPublishedTests();
+  }
+
+  setActiveTab(tab: TeacherPageTab): void {
+    if (this.activeTab() === tab) {
+      return;
+    }
+
+    this.closeDialogs();
+    this.activeTab.set(tab);
   }
 
   useQuestionTemplate(): void {
