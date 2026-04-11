@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { getApps, initializeApp } from 'firebase/app';
 import { Database, get, getDatabase, ref, remove, set } from 'firebase/database';
 import { environment } from '../../../environments/environment';
-import { OptionKey, PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../shared/models/test.models';
+import { OptionKey, PublishedTest, ReadingPassage, TestCreatorInfo, TestQuestion, TestType } from '../../shared/models/test.models';
 
 @Injectable({ providedIn: 'root' })
 export class TestRepositoryService {
@@ -38,6 +38,11 @@ export class TestRepositoryService {
     const tests = this.toPublishedTests(snapshot.val());
     this.replaceCache(tests);
     return tests;
+  }
+
+  async listPublishedTestsByCreator(creatorUid: string): Promise<PublishedTest[]> {
+    const tests = await this.listPublishedTests();
+    return tests.filter((test) => test.creator?.uid === creatorUid);
   }
 
   async deleteTest(code: string): Promise<void> {
@@ -129,7 +134,29 @@ export class TestRepositoryService {
       questions,
       passages: passages ?? undefined,
       answerKey: candidate.answerKey,
-      createdAtIso: candidate.createdAtIso
+      createdAtIso: candidate.createdAtIso,
+      creator: this.normalizeCreator(candidate.creator)
+    };
+  }
+
+  private normalizeCreator(creator: PublishedTest['creator'] | undefined): TestCreatorInfo | null {
+    if (!creator || typeof creator !== 'object') {
+      return null;
+    }
+
+    const candidate = creator as Partial<TestCreatorInfo>;
+    if (
+      typeof candidate.uid !== 'string' ||
+      typeof candidate.username !== 'string' ||
+      typeof candidate.displayName !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      uid: candidate.uid,
+      username: candidate.username,
+      displayName: candidate.displayName
     };
   }
 

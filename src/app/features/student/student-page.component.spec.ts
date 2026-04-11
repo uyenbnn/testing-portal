@@ -57,7 +57,8 @@ describe('StudentPageComponent', () => {
         }
       ],
       answerKey: { 1: 'B', 2: 'D' },
-      createdAtIso: '2026-04-10T12:30:00.000Z'
+      createdAtIso: '2026-04-10T12:30:00.000Z',
+      creator: null
     });
     fixture.componentInstance.remainingSeconds.set(1800);
 
@@ -87,7 +88,8 @@ describe('StudentPageComponent', () => {
         }
       ],
       answerKey: { 1: 'B' },
-      createdAtIso: '2026-04-10T12:45:00.000Z'
+      createdAtIso: '2026-04-10T12:45:00.000Z',
+      creator: null
     });
     fixture.componentInstance.remainingSeconds.set(900);
 

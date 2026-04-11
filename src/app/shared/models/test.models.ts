@@ -15,6 +15,12 @@ export interface TestQuestion {
   passageId?: string;
 }
 
+export interface TestCreatorInfo {
+  uid: string;
+  username: string;
+  displayName: string;
+}
+
 export interface PublishedTest {
   code: string;
   title: string;
@@ -24,6 +30,7 @@ export interface PublishedTest {
   passages?: ReadingPassage[];
   answerKey: Record<number, OptionKey>;
   createdAtIso: string;
+  creator: TestCreatorInfo | null;
 }
 
 export interface StudentProfile {

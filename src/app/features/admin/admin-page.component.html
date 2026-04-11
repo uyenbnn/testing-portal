@@ -111,5 +111,33 @@
 				}
 			</section>
 		}
+
+		<section class="admin-card admin-card--tests">
+			<div class="tests-summary">
+				<div>
+					<p class="eyebrow">Published Test Oversight</p>
+					<h2>{{ totalTestCount() }} total {{ totalTestCount() === 1 ? 'test' : 'tests' }}</h2>
+					<p>View every published test across all teacher accounts and delete any test from the portal.</p>
+				</div>
+			</div>
+
+			<app-teacher-test-library
+				sectionTitle="All Published Tests"
+				sectionHint="This list includes every published test from every teacher account."
+				emptyText="No published tests are available yet."
+				[showCreator]="true"
+				[isLoadingTests]="isLoadingTests()"
+				[listError]="testsError()"
+				[createdTestItems]="createdTestItems()"
+				[deletingCodes]="deletingCodes()"
+				[selectedTest]="selectedTest()"
+				[selectedTestPassageGroups]="selectedTestPassageGroups()"
+				[pendingDeleteTest]="pendingDeleteTest()"
+				(openTestDetails)="openTestDetails($event)"
+				(closeSelectedTest)="closeSelectedTest()"
+				(requestDeleteTest)="requestDeleteTest($event)"
+				(cancelDeleteRequest)="cancelDeleteRequest()"
+				(deleteTest)="deletePublishedTest($event)" />
+		</section>
 	}
 </main>

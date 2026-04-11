@@ -6,7 +6,7 @@
       ".read": true,
       "$code": {
         ".read": true,
-        ".write": "!newData.exists() || newData.hasChildren(['code','title','testType','durationMinutes','questions','answerKey','createdAtIso'])",
+        ".write": "!newData.exists() || newData.hasChildren(['code','title','testType','durationMinutes','questions','answerKey','createdAtIso','creator'])",
         "code": {
           ".validate": "newData.isString() && newData.val() === $code"
         },
@@ -21,6 +21,9 @@
         },
         "createdAtIso": {
           ".validate": "newData.isString()"
+        },
+        "creator": {
+          ".validate": "newData.hasChildren(['uid','username','displayName'])"
         },
         "questions": {
           ".validate": "newData.exists()"

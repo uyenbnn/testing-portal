@@ -14,7 +14,9 @@
       </div>
     </div>
 
-    <a class="meta" routerLink="/admin">Admin</a>
+    @if (showAdminLink()) {
+      <a class="meta" routerLink="/admin">Admin</a>
+    }
   </header>
 
   <main class="content">

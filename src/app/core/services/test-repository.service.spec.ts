@@ -99,7 +99,8 @@ describe('TestRepositoryService', () => {
           }
         ],
         answerKey: { 1: 'B' },
-        createdAtIso: '2026-04-10T09:00:00.000Z'
+        createdAtIso: '2026-04-10T09:00:00.000Z',
+        creator: null
       }
     ]);
   });
@@ -118,7 +119,12 @@ describe('TestRepositoryService', () => {
         }
       ],
       answerKey: { 1: 'A' },
-      createdAtIso: '2026-04-10T10:00:00.000Z'
+      createdAtIso: '2026-04-10T10:00:00.000Z',
+      creator: {
+        uid: 'teacher-1',
+        username: 'physics.teacher',
+        displayName: 'Physics Teacher'
+      }
     });
 
     firebaseMocks.getMock.mockResolvedValue({
@@ -168,7 +174,8 @@ describe('TestRepositoryService', () => {
         }
       ],
       answerKey: { 1: 'C' },
-      createdAtIso: '2026-04-10T11:00:00.000Z'
+      createdAtIso: '2026-04-10T11:00:00.000Z',
+      creator: null
     });
   });
 
@@ -237,7 +244,61 @@ describe('TestRepositoryService', () => {
         }
       ],
       answerKey: { 1: 'B', 2: 'C' },
-      createdAtIso: '2026-04-10T12:00:00.000Z'
+      createdAtIso: '2026-04-10T12:00:00.000Z',
+      creator: null
     });
+  });
+
+  it('filters tests by creator uid', async () => {
+    firebaseMocks.getMock.mockResolvedValue({
+      exists: () => true,
+      val: () => ({
+        '111111': {
+          code: '111111',
+          title: 'Owned Test',
+          testType: 'standard',
+          durationMinutes: 25,
+          questions: [
+            {
+              number: 1,
+              prompt: 'Question',
+              options: { A: '1', B: '2', C: '3', D: '4' }
+            }
+          ],
+          answerKey: { 1: 'A' },
+          createdAtIso: '2026-04-10T09:00:00.000Z',
+          creator: {
+            uid: 'teacher-1',
+            username: 'teacher.one',
+            displayName: 'Teacher One'
+          }
+        },
+        '222222': {
+          code: '222222',
+          title: 'Other Test',
+          testType: 'standard',
+          durationMinutes: 25,
+          questions: [
+            {
+              number: 1,
+              prompt: 'Question',
+              options: { A: '1', B: '2', C: '3', D: '4' }
+            }
+          ],
+          answerKey: { 1: 'B' },
+          createdAtIso: '2026-04-10T10:00:00.000Z',
+          creator: {
+            uid: 'teacher-2',
+            username: 'teacher.two',
+            displayName: 'Teacher Two'
+          }
+        }
+      })
+    } as never);
+
+    const tests = await service.listPublishedTestsByCreator('teacher-1');
+
+    expect(tests).toHaveLength(1);
+    expect(tests[0]?.code).toBe('111111');
   });
 });

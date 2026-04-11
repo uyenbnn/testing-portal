@@ -127,7 +127,9 @@ export class TeacherPageComponent implements OnInit {
       questionCount: test.questions.length,
       passageCount: test.passages?.length ?? 0,
       createdAtLabel: this.formatCreatedAt(test.createdAtIso),
-      testTypeLabel: this.formatTestType(test.testType)
+      testTypeLabel: this.formatTestType(test.testType),
+      creatorNameLabel: this.formatCreatorName(test),
+      creatorUsernameLabel: this.formatCreatorUsername(test)
     }))
   );
 
@@ -333,6 +335,13 @@ export class TeacherPageComponent implements OnInit {
 
     try {
       const code = await this.codeService.generateUniqueCode((candidate) => this.repository.isCodeTaken(candidate));
+      const teacherProfile = this.teacherProfile();
+
+      if (!teacherProfile) {
+        this.errors.set([{ scope: 'general', line: 1, message: 'Your teacher session is missing profile details. Please sign in again.' }]);
+        return;
+      }
+
       const payload: PublishedTest = {
         code,
         title: this.form.controls.title.value,
@@ -340,7 +349,12 @@ export class TeacherPageComponent implements OnInit {
         durationMinutes: this.form.controls.durationMinutes.value,
         questions: parsed.questions,
         answerKey: parsed.answerKey,
-        createdAtIso: new Date().toISOString()
+        createdAtIso: new Date().toISOString(),
+        creator: {
+          uid: teacherProfile.uid,
+          username: teacherProfile.username,
+          displayName: `${teacherProfile.firstName} ${teacherProfile.lastName}`.trim()
+        }
       };
 
       if (payload.testType === 'reading') {
@@ -414,7 +428,14 @@ export class TeacherPageComponent implements OnInit {
     this.listError.set('');
 
     try {
-      const tests = await this.repository.listPublishedTests();
+      const teacherProfile = this.teacherProfile();
+      if (!teacherProfile) {
+        this.createdTests.set([]);
+        this.listError.set('Your teacher profile could not be loaded. Please sign out and sign in again.');
+        return;
+      }
+
+      const tests = await this.repository.listPublishedTestsByCreator(teacherProfile.uid);
       this.createdTests.set(this.sortTests(tests));
     } catch {
       this.listError.set('Failed to load created tests. Please refresh and try again.');
@@ -455,6 +476,14 @@ export class TeacherPageComponent implements OnInit {
 
   private formatTestType(testType: TestType): string {
     return testType === 'reading' ? 'Reading' : 'Standard MCQ';
+  }
+
+  private formatCreatorName(test: PublishedTest): string {
+    return test.creator?.displayName || 'Unknown creator';
+  }
+
+  private formatCreatorUsername(test: PublishedTest): string {
+    return test.creator?.username ? `@${test.creator.username}` : 'Unknown username';
   }
 
   private toPassageGroups(test: PublishedTest): PassageQuestionGroup[] {

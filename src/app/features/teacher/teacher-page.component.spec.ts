@@ -25,12 +25,18 @@ describe('TeacherPageComponent', () => {
         }
       ],
       answerKey: { 1: 'B' },
-      createdAtIso: '2026-04-10T09:15:00.000Z'
+      createdAtIso: '2026-04-10T09:15:00.000Z',
+      creator: {
+        uid: 'teacher-1',
+        username: 'demo.teacher',
+        displayName: 'Demo Teacher'
+      }
     }
   ];
 
   let repository: {
     listPublishedTests: ReturnType<typeof vi.fn>;
+    listPublishedTestsByCreator: ReturnType<typeof vi.fn>;
     deleteTest: ReturnType<typeof vi.fn>;
     isCodeTaken: ReturnType<typeof vi.fn>;
     publishTest: ReturnType<typeof vi.fn>;
@@ -40,6 +46,7 @@ describe('TeacherPageComponent', () => {
   beforeEach(async () => {
     repository = {
       listPublishedTests: vi.fn().mockResolvedValue(publishedTests),
+      listPublishedTestsByCreator: vi.fn().mockResolvedValue(publishedTests),
       deleteTest: vi.fn().mockResolvedValue(undefined),
       isCodeTaken: vi.fn().mockResolvedValue(false),
       publishTest: vi.fn().mockResolvedValue(undefined)
@@ -124,7 +131,7 @@ describe('TeacherPageComponent', () => {
 
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(repository.listPublishedTests).toHaveBeenCalled();
+    expect(repository.listPublishedTestsByCreator).toHaveBeenCalledWith('teacher-1');
     expect(element.textContent).toContain('Midterm Review');
     expect(element.textContent).toContain('123456');
     expect(element.textContent).toContain('Standard MCQ');
@@ -230,7 +237,12 @@ describe('TeacherPageComponent', () => {
         }
       ],
       answerKey: { 1: 'A' },
-      createdAtIso: expect.any(String)
+      createdAtIso: expect.any(String),
+      creator: {
+        uid: 'teacher-1',
+        username: 'demo.teacher',
+        displayName: 'Demo Teacher'
+      }
     });
   });
 
@@ -280,7 +292,12 @@ describe('TeacherPageComponent', () => {
         }
       ],
       answerKey: { 1: 'C' },
-      createdAtIso: expect.any(String)
+      createdAtIso: expect.any(String),
+      creator: {
+        uid: 'teacher-1',
+        username: 'demo.teacher',
+        displayName: 'Demo Teacher'
+      }
     });
     expect(publishedPayload).not.toHaveProperty('passages');
   });

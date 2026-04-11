@@ -5,6 +5,8 @@ export interface CreatedTestItem extends PublishedTest {
   passageCount: number;
   createdAtLabel: string;
   testTypeLabel: string;
+  creatorNameLabel: string;
+  creatorUsernameLabel: string;
 }
 
 export interface PassageQuestionGroup {

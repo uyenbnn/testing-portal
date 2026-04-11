@@ -10,6 +10,10 @@ import { CreatedTestItem, PassageQuestionGroup } from '../../teacher-page.models
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeacherTestLibrary {
+  readonly sectionTitle = input('Created Tests');
+  readonly sectionHint = input('All published tests are listed here and can be removed from the portal.');
+  readonly emptyText = input('No tests published yet.');
+  readonly showCreator = input(false);
   readonly isLoadingTests = input(true);
   readonly listError = input('');
   readonly createdTestItems = input.required<readonly CreatedTestItem[]>();

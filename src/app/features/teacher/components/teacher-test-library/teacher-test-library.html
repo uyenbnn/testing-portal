@@ -1,8 +1,8 @@
 <section class="card created-tests" aria-live="polite">
 	<div class="section-head">
 		<div>
-			<h2>Created Tests</h2>
-			<p class="hint">All published tests are listed here and can be removed from the portal.</p>
+			<h2>{{ sectionTitle() }}</h2>
+			<p class="hint">{{ sectionHint() }}</p>
 		</div>
 	</div>
 
@@ -11,7 +11,7 @@
 	} @else if (listError()) {
 		<p class="error-text">{{ listError() }}</p>
 	} @else if (createdTestItems().length === 0) {
-		<p class="hint">No tests published yet.</p>
+		<p class="hint">{{ emptyText() }}</p>
 	} @else {
 		<div class="test-list" role="list">
 			@for (test of createdTestItems(); track test.code) {
@@ -50,6 +50,12 @@
 									<dt>Created</dt>
 									<dd>{{ test.createdAtLabel }}</dd>
 								</div>
+								@if (showCreator()) {
+									<div>
+										<dt>Creator</dt>
+										<dd>{{ test.creatorNameLabel }}</dd>
+									</div>
+								}
 							</dl>
 						</div>
 					</button>
@@ -91,6 +97,9 @@
 				<p><strong>Duration:</strong> {{ test.durationMinutes }} minutes</p>
 				<p><strong>Questions:</strong> {{ test.questionCount }}</p>
 				<p><strong>Created:</strong> {{ test.createdAtLabel }}</p>
+				@if (showCreator()) {
+					<p><strong>Creator:</strong> {{ test.creatorNameLabel }} ({{ test.creatorUsernameLabel }})</p>
+				}
 			</div>
 
 			<section class="modal-section">

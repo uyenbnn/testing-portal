@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import { vi } from 'vitest';
 import { AdminReviewService } from '../../core/services/admin-review.service';
 import { AdminSessionService } from '../../core/services/admin-session.service';
+import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { AdminPageComponent } from './admin-page.component';
 
 describe('AdminPageComponent', () => {
@@ -26,6 +27,13 @@ describe('AdminPageComponent', () => {
 						listTeacherAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
 						approveTeacherAccount: vi.fn().mockResolvedValue(undefined),
 						rejectTeacherAccount: vi.fn().mockResolvedValue(undefined)
+					}
+				},
+				{
+					provide: TestRepositoryService,
+					useValue: {
+						listPublishedTests: vi.fn().mockResolvedValue([]),
+						deleteTest: vi.fn().mockResolvedValue(undefined)
 					}
 				}
 			]

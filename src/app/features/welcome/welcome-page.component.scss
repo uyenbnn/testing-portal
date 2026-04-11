@@ -48,6 +48,11 @@
   color: #0e3841;
 }
 
+.role-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .role-card p {
   margin: 0;
   color: #35545e;
@@ -55,8 +60,9 @@
 }
 
 .cta {
-  display: inline-block;
-  margin-top: 1rem;
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: auto;
   text-decoration: none;
   color: #fff;
   background: linear-gradient(120deg, #0b7a7e 0%, #0f586f 100%);
