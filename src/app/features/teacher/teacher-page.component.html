@@ -72,17 +72,17 @@
             <form class="auth-form auth-form--signup" [formGroup]="signupForm" (ngSubmit)="signUpTeacher()">
               <label class="field">
                 <span>Họ</span>
-                <input type="text" formControlName="firstName" autocomplete="given-name" />
-                @if (hasSignupFieldError('firstName')) {
-                  <small class="field-error">{{ getSignupFieldMessage('firstName') }}</small>
+                <input type="text" formControlName="lastName" autocomplete="family-name" />
+                @if (hasSignupFieldError('lastName')) {
+                  <small class="field-error">{{ getSignupFieldMessage('lastName') }}</small>
                 }
               </label>
 
               <label class="field">
                 <span>Tên</span>
-                <input type="text" formControlName="lastName" autocomplete="family-name" />
-                @if (hasSignupFieldError('lastName')) {
-                  <small class="field-error">{{ getSignupFieldMessage('lastName') }}</small>
+                <input type="text" formControlName="firstName" autocomplete="given-name" />
+                @if (hasSignupFieldError('firstName')) {
+                  <small class="field-error">{{ getSignupFieldMessage('firstName') }}</small>
                 }
               </label>
 
