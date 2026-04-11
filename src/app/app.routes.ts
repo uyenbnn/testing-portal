@@ -17,6 +17,11 @@ export const routes: Routes = [
 			import('./features/student/student-page.component').then((m) => m.StudentPageComponent)
 	},
 	{
+		path: 'admin',
+		loadComponent: () =>
+			import('./features/admin/admin-page.component').then((m) => m.AdminPageComponent)
+	},
+	{
 		path: '**',
 		redirectTo: ''
 	}

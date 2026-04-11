@@ -53,10 +53,18 @@
   color: #416068;
   font-weight: 600;
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
   padding: 0.45rem 0.7rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #d2e0e4;
+  text-decoration: none;
+}
+
+.meta:focus-visible {
+  outline: 2px solid #184d57;
+  outline-offset: 2px;
 }
 
 .content {

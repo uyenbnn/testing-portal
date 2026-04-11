@@ -4,67 +4,213 @@
     <h1>Teacher Workspace</h1>
   </header>
 
-  <nav class="tab-nav" aria-label="Teacher workspace sections">
-    <div class="tab-list" role="tablist" aria-orientation="horizontal">
-      @for (tab of tabs; track tab.id) {
+  <section class="auth-banner">
+    <div>
+      <p class="status-eyebrow">Teacher Access</p>
+      <h2>{{ teacherStatusLabel() }}</h2>
+      <p>{{ teacherStatusDescription() }}</p>
+    </div>
+
+    @if (accessState() === 'approved') {
+      <div class="teacher-session-card">
+        <p class="teacher-session-name">{{ teacherDisplayName() }}</p>
+        <p class="teacher-session-copy">Username: {{ teacherProfile()?.username }}</p>
+        <button type="button" class="secondary-button" (click)="logoutTeacher()">Log Out</button>
+      </div>
+    }
+  </section>
+
+  @if (accessState() === 'loading') {
+    <section class="status-card" aria-live="polite">
+      <h3>Checking your session</h3>
+      <p>Loading your teacher account and approval status.</p>
+    </section>
+  } @else if (accessState() === 'signed-out') {
+    <section class="auth-shell">
+      <nav class="auth-mode-nav" aria-label="Teacher authentication options">
         <button
           type="button"
-          class="tab-button"
-          role="tab"
-          [class.tab-button--active]="activeTab() === tab.id"
-          [attr.id]="tab.id + '-tab'"
-          [attr.aria-selected]="activeTab() === tab.id"
-          [attr.aria-controls]="tab.id + '-panel'"
-          (click)="setActiveTab(tab.id)">
-          {{ tab.label }}
+          class="auth-mode-button"
+          [class.auth-mode-button--active]="authMode() === 'login'"
+          (click)="setAuthMode('login')">
+          Log In
         </button>
-      }
-    </div>
-  </nav>
+        <button
+          type="button"
+          class="auth-mode-button"
+          [class.auth-mode-button--active]="authMode() === 'signup'"
+          (click)="setAuthMode('signup')">
+          Create Account
+        </button>
+      </nav>
 
-  @if (activeTab() === 'create') {
-    <section
-      class="tab-panel"
-      role="tabpanel"
-      id="create-panel"
-      aria-labelledby="create-tab">
-      <app-teacher-test-builder
-        [form]="form"
-        [testTypes]="testTypes"
-        [selectedTestType]="selectedTestType()"
-        [questionErrors]="questionErrors()"
-        [answerErrors]="answerErrors()"
-        [previewQuestionCount]="previewQuestionCount()"
-        [previewPassageCount]="previewPassageCount()"
-        [previewAnswerCount]="previewAnswerCount()"
-        [isPublishing]="isPublishing()"
-        [publishedCode]="publishedCode()"
-        [errors]="errors()"
-        (useQuestionTemplate)="useQuestionTemplate()"
-        (useAnswerTemplate)="useAnswerTemplate()"
-        (publishTest)="publishTest()" />
+      <div class="auth-grid">
+        <section class="auth-card">
+          @if (authMode() === 'login') {
+            <h3>Teacher Login</h3>
+            <p>Use your approved username and password to enter the workspace.</p>
+
+            <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="loginTeacher()">
+              <label class="field">
+                <span>Username</span>
+                <input type="text" formControlName="username" autocomplete="username" />
+              </label>
+
+              <label class="field">
+                <span>Password</span>
+                <input type="password" formControlName="password" autocomplete="current-password" />
+              </label>
+
+              <button type="submit" class="primary-button" [disabled]="isAuthenticating()">
+                {{ isAuthenticating() ? 'Signing In...' : 'Log In' }}
+              </button>
+            </form>
+          } @else {
+            <h3>Create Teacher Account</h3>
+            <p>New teacher accounts are stored in the system and must be approved by the admin.</p>
+
+            <form class="auth-form auth-form--signup" [formGroup]="signupForm" (ngSubmit)="signUpTeacher()">
+              <label class="field">
+                <span>First Name</span>
+                <input type="text" formControlName="firstName" autocomplete="given-name" />
+              </label>
+
+              <label class="field">
+                <span>Last Name</span>
+                <input type="text" formControlName="lastName" autocomplete="family-name" />
+              </label>
+
+              <label class="field">
+                <span>Gender</span>
+                <select formControlName="gender">
+                  @for (option of signupGenderOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Phone Number</span>
+                <input type="tel" formControlName="phoneNumber" autocomplete="tel" />
+              </label>
+
+              <label class="field field--full">
+                <span>Email</span>
+                <input type="email" formControlName="email" autocomplete="email" />
+              </label>
+
+              <label class="field">
+                <span>Username</span>
+                <input type="text" formControlName="username" autocomplete="username" />
+              </label>
+
+              <label class="field">
+                <span>Password</span>
+                <input type="password" formControlName="password" autocomplete="new-password" />
+              </label>
+
+              <button type="submit" class="primary-button field--full" [disabled]="isAuthenticating()">
+                {{ isAuthenticating() ? 'Creating Account...' : 'Create Account' }}
+              </button>
+            </form>
+          }
+
+          @if (authError()) {
+            <p class="message message--error" aria-live="assertive">{{ authError() }}</p>
+          }
+
+          @if (authNotice()) {
+            <p class="message message--info" aria-live="polite">{{ authNotice() }}</p>
+          }
+        </section>
+
+        <aside class="auth-info-card">
+          <h3>How Teacher Access Works</h3>
+          <ol>
+            <li>Create a teacher account with your profile information.</li>
+            <li>The admin reviews and approves or rejects the account.</li>
+            <li>After approval, log in with your username and password to publish tests.</li>
+          </ol>
+        </aside>
+      </div>
     </section>
-  }
+  } @else if (accessState() === 'approved') {
+    <nav class="tab-nav" aria-label="Teacher workspace sections">
+      <div class="tab-list" role="tablist" aria-orientation="horizontal">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            class="tab-button"
+            role="tab"
+            [class.tab-button--active]="activeTab() === tab.id"
+            [attr.id]="tab.id + '-tab'"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [attr.aria-controls]="tab.id + '-panel'"
+            (click)="setActiveTab(tab.id)">
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+    </nav>
 
-  @if (activeTab() === 'created') {
-    <section
-      class="tab-panel"
-      role="tabpanel"
-      id="created-panel"
-      aria-labelledby="created-tab">
-      <app-teacher-test-library
-        [isLoadingTests]="isLoadingTests()"
-        [listError]="listError()"
-        [createdTestItems]="createdTestItems()"
-        [deletingCodes]="deletingCodes()"
-        [selectedTest]="selectedTest()"
-        [selectedTestPassageGroups]="selectedTestPassageGroups()"
-        [pendingDeleteTest]="pendingDeleteTest()"
-        (openTestDetails)="openTestDetails($event)"
-        (closeSelectedTest)="closeSelectedTest()"
-        (requestDeleteTest)="requestDeleteTest($event)"
-        (cancelDeleteRequest)="cancelDeleteRequest()"
-        (deleteTest)="deleteTest($event)" />
+    @if (activeTab() === 'create') {
+      <section
+        class="tab-panel"
+        role="tabpanel"
+        id="create-panel"
+        aria-labelledby="create-tab">
+        <app-teacher-test-builder
+          [form]="form"
+          [testTypes]="testTypes"
+          [selectedTestType]="selectedTestType()"
+          [questionErrors]="questionErrors()"
+          [answerErrors]="answerErrors()"
+          [previewQuestionCount]="previewQuestionCount()"
+          [previewPassageCount]="previewPassageCount()"
+          [previewAnswerCount]="previewAnswerCount()"
+          [isPublishing]="isPublishing()"
+          [publishedCode]="publishedCode()"
+          [errors]="errors()"
+          (useQuestionTemplate)="useQuestionTemplate()"
+          (useAnswerTemplate)="useAnswerTemplate()"
+          (publishTest)="publishTest()" />
+      </section>
+    }
+
+    @if (activeTab() === 'created') {
+      <section
+        class="tab-panel"
+        role="tabpanel"
+        id="created-panel"
+        aria-labelledby="created-tab">
+        <app-teacher-test-library
+          [isLoadingTests]="isLoadingTests()"
+          [listError]="listError()"
+          [createdTestItems]="createdTestItems()"
+          [deletingCodes]="deletingCodes()"
+          [selectedTest]="selectedTest()"
+          [selectedTestPassageGroups]="selectedTestPassageGroups()"
+          [pendingDeleteTest]="pendingDeleteTest()"
+          (openTestDetails)="openTestDetails($event)"
+          (closeSelectedTest)="closeSelectedTest()"
+          (requestDeleteTest)="requestDeleteTest($event)"
+          (cancelDeleteRequest)="cancelDeleteRequest()"
+          (deleteTest)="deleteTest($event)" />
+      </section>
+    }
+  } @else {
+    <section class="status-card" aria-live="polite">
+      <h3>{{ teacherStatusLabel() }}</h3>
+      <p>{{ teacherStatusDescription() }}</p>
+
+      <div class="status-actions">
+        <button type="button" class="primary-button" (click)="refreshApprovalStatus()">Refresh Status</button>
+        <button type="button" class="secondary-button" (click)="logoutTeacher()">Log Out</button>
+      </div>
+
+      @if (authError()) {
+        <p class="message message--error">{{ authError() }}</p>
+      }
     </section>
   }
 </main>

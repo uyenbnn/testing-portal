@@ -1,17 +1,21 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { startWith } from 'rxjs';
 import { TestCodeService } from '../../core/services/test-code.service';
+import { TeacherAuthService } from '../../core/services/teacher-auth.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
+import { TeacherGender, TeacherProfile } from '../../shared/models/auth.models';
 import { ParseError, PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../shared/models/test.models';
 import { TeacherTestBuilder } from './components/teacher-test-builder/teacher-test-builder';
 import { TeacherTestLibrary } from './components/teacher-test-library/teacher-test-library';
 import { CreatedTestItem, PassageQuestionGroup, TeacherTestTypeOption } from './teacher-page.models';
 
 type TeacherPageTab = 'create' | 'created';
+type TeacherAuthMode = 'login' | 'signup';
+type TeacherAccessState = 'loading' | 'signed-out' | 'pending' | 'approved' | 'rejected' | 'missing-profile';
 
 @Component({
   selector: 'app-teacher-page',
@@ -25,6 +29,7 @@ type TeacherPageTab = 'create' | 'created';
 })
 export class TeacherPageComponent implements OnInit {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly teacherAuth = inject(TeacherAuthService);
   private readonly templateService = inject(TestTemplateService);
   private readonly codeService = inject(TestCodeService);
   private readonly repository = inject(TestRepositoryService);
@@ -37,7 +42,23 @@ export class TeacherPageComponent implements OnInit {
     answerText: this.fb.control('', [Validators.required])
   });
 
+  readonly loginForm = this.fb.group({
+    username: this.fb.control('', [Validators.required]),
+    password: this.fb.control('', [Validators.required])
+  });
+
+  readonly signupForm = this.fb.group({
+    firstName: this.fb.control('', [Validators.required, Validators.maxLength(60)]),
+    lastName: this.fb.control('', [Validators.required, Validators.maxLength(60)]),
+    gender: this.fb.control<TeacherGender>('prefer_not_to_say', [Validators.required]),
+    phoneNumber: this.fb.control('', [Validators.required, Validators.pattern(/^[0-9+()\s-]{8,20}$/)]),
+    email: this.fb.control('', [Validators.required, Validators.email]),
+    username: this.fb.control('', [Validators.required, Validators.minLength(4), Validators.maxLength(32), Validators.pattern(/^[A-Za-z0-9._-]+$/)]),
+    password: this.fb.control('', [Validators.required, Validators.minLength(8)])
+  });
+
   readonly isPublishing = signal(false);
+  readonly isAuthenticating = signal(false);
   readonly publishedCode = signal('');
   readonly errors = signal<ParseError[]>([]);
   readonly createdTests = signal<PublishedTest[]>([]);
@@ -47,6 +68,33 @@ export class TeacherPageComponent implements OnInit {
   readonly selectedTest = signal<CreatedTestItem | null>(null);
   readonly pendingDeleteTest = signal<PublishedTest | null>(null);
   readonly activeTab = signal<TeacherPageTab>('create');
+  readonly authMode = signal<TeacherAuthMode>('login');
+  readonly authError = signal('');
+  readonly authNotice = signal('Create an account, then wait for admin approval before accessing the teacher workspace.');
+  readonly hasLoadedApprovedTests = signal(false);
+
+  readonly teacherProfile = this.teacherAuth.currentProfile;
+  readonly teacherDisplayName = this.teacherAuth.displayName;
+  readonly isTeacherReady = this.teacherAuth.isReady;
+  readonly isTeacherProfileLoading = this.teacherAuth.isProfileLoading;
+  readonly accessState = computed<TeacherAccessState>(() => {
+    if (!this.isTeacherReady() || this.isTeacherProfileLoading()) {
+      return 'loading';
+    }
+
+    if (!this.teacherAuth.isAuthenticated()) {
+      return 'signed-out';
+    }
+
+    const profile = this.teacherProfile();
+    if (!profile) {
+      return 'missing-profile';
+    }
+
+    return profile.status;
+  });
+  readonly teacherStatusLabel = computed(() => this.formatStatusLabel(this.accessState()));
+  readonly teacherStatusDescription = computed(() => this.describeAccessState(this.accessState(), this.teacherProfile()));
 
   readonly formValue = toSignal(
     this.form.valueChanges.pipe(startWith(this.form.getRawValue())),
@@ -93,8 +141,129 @@ export class TeacherPageComponent implements OnInit {
     { id: 'created', label: 'Created Tests' }
   ];
 
+  readonly signupGenderOptions: { value: TeacherGender; label: string }[] = [
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'other', label: 'Other' },
+    { value: 'prefer_not_to_say', label: 'Prefer not to say' }
+  ];
+
+  constructor() {
+    effect(() => {
+      const accessState = this.accessState();
+
+      if (accessState === 'approved') {
+        if (!this.hasLoadedApprovedTests()) {
+          this.hasLoadedApprovedTests.set(true);
+          void this.loadPublishedTests();
+        }
+
+        return;
+      }
+
+      this.hasLoadedApprovedTests.set(false);
+      this.createdTests.set([]);
+      this.isLoadingTests.set(false);
+      this.listError.set('');
+      this.selectedTest.set(null);
+      this.pendingDeleteTest.set(null);
+      this.deletingCodes.set({});
+      this.publishedCode.set('');
+    });
+  }
+
   ngOnInit(): void {
-    void this.loadPublishedTests();
+    if (this.accessState() === 'approved' && !this.hasLoadedApprovedTests()) {
+      this.hasLoadedApprovedTests.set(true);
+      void this.loadPublishedTests();
+    }
+  }
+
+  setAuthMode(mode: TeacherAuthMode): void {
+    this.authMode.set(mode);
+    this.authError.set('');
+  }
+
+  async loginTeacher(): Promise<void> {
+    this.authError.set('');
+    this.loginForm.markAllAsTouched();
+
+    if (this.loginForm.invalid) {
+      this.authError.set('Enter your username and password to continue.');
+      return;
+    }
+
+    this.isAuthenticating.set(true);
+
+    try {
+      await this.teacherAuth.login(
+        this.loginForm.controls.username.value,
+        this.loginForm.controls.password.value
+      );
+
+      this.authNotice.set('Login successful. Your workspace opens automatically once your account is approved.');
+      this.loginForm.reset({ username: '', password: '' });
+    } catch (error) {
+      this.authError.set(this.toAuthErrorMessage(error));
+    } finally {
+      this.isAuthenticating.set(false);
+    }
+  }
+
+  async signUpTeacher(): Promise<void> {
+    this.authError.set('');
+    this.signupForm.markAllAsTouched();
+
+    if (this.signupForm.invalid) {
+      this.authError.set('Complete all required fields with valid information before creating the account.');
+      return;
+    }
+
+    this.isAuthenticating.set(true);
+
+    try {
+      await this.teacherAuth.signUp({
+        firstName: this.signupForm.controls.firstName.value,
+        lastName: this.signupForm.controls.lastName.value,
+        gender: this.signupForm.controls.gender.value,
+        phoneNumber: this.signupForm.controls.phoneNumber.value,
+        email: this.signupForm.controls.email.value,
+        username: this.signupForm.controls.username.value,
+        password: this.signupForm.controls.password.value
+      });
+
+      this.authNotice.set('Account created. The admin must approve it before you can enter the teacher workspace.');
+      this.signupForm.reset({
+        firstName: '',
+        lastName: '',
+        gender: 'prefer_not_to_say',
+        phoneNumber: '',
+        email: '',
+        username: '',
+        password: ''
+      });
+    } catch (error) {
+      this.authError.set(this.toAuthErrorMessage(error));
+    } finally {
+      this.isAuthenticating.set(false);
+    }
+  }
+
+  async logoutTeacher(): Promise<void> {
+    await this.teacherAuth.logout();
+    this.authNotice.set('You have been signed out.');
+    this.authError.set('');
+    this.setAuthMode('login');
+  }
+
+  async refreshApprovalStatus(): Promise<void> {
+    this.authError.set('');
+
+    try {
+      await this.teacherAuth.refreshProfile();
+    } catch {
+      this.authError.set('Failed to refresh your approval status. Please try again.');
+    }
   }
 
   setActiveTab(tab: TeacherPageTab): void {
@@ -297,5 +466,70 @@ export class TeacherPageComponent implements OnInit {
       passage,
       questions: test.questions.filter((question) => question.passageId === passage.id)
     }));
+  }
+
+  private formatStatusLabel(accessState: TeacherAccessState): string {
+    switch (accessState) {
+      case 'approved':
+        return 'Approved';
+      case 'pending':
+        return 'Pending Approval';
+      case 'rejected':
+        return 'Rejected';
+      case 'loading':
+        return 'Loading';
+      case 'missing-profile':
+        return 'Account Removed';
+      default:
+        return 'Not Signed In';
+    }
+  }
+
+  private describeAccessState(accessState: TeacherAccessState, profile: TeacherProfile | null): string {
+    switch (accessState) {
+      case 'approved':
+        return `${profile?.firstName ?? 'Teacher'}, your account is approved and you can manage tests.`;
+      case 'pending':
+        return 'Your account is waiting for admin approval. You can sign in again later to check the status.';
+      case 'rejected':
+        return 'Your request was rejected. Contact the admin if you need a new account reviewed.';
+      case 'missing-profile':
+        return 'Your account record is no longer available in the system.';
+      case 'loading':
+        return 'Checking your session and approval status.';
+      default:
+        return 'Sign in or create a teacher account to access this workspace.';
+    }
+  }
+
+  private toAuthErrorMessage(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return 'Authentication failed. Please try again.';
+    }
+
+    switch (error.message) {
+      case 'USERNAME_TAKEN':
+        return 'That username is already in use. Choose a different username.';
+      case 'INVALID_CREDENTIALS':
+        return 'Incorrect username or password.';
+      case 'ACCOUNT_NOT_FOUND':
+        return 'This account is no longer available. Please contact the admin.';
+      case 'ACCOUNT_REJECTED':
+        return 'This account was rejected and cannot access the teacher workspace.';
+      default:
+        if (error.message.includes('auth/email-already-in-use')) {
+          return 'That email address is already registered.';
+        }
+
+        if (error.message.includes('auth/invalid-credential')) {
+          return 'Incorrect username or password.';
+        }
+
+        if (error.message.includes('auth/weak-password')) {
+          return 'Use a stronger password with at least 8 characters.';
+        }
+
+        return 'Authentication failed. Please try again.';
+    }
   }
 }

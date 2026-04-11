@@ -6,6 +6,217 @@
   gap: 1rem;
 }
 
+.auth-banner,
+.status-card,
+.auth-card,
+.auth-info-card,
+.teacher-session-card {
+  border: 1px solid #d6e5e8;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fafb 100%);
+  box-shadow: 0 16px 30px rgb(17 56 64 / 0.06);
+}
+
+.auth-banner {
+  padding: 1.2rem 1.3rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.status-eyebrow {
+  margin: 0 0 0.35rem;
+  color: #0f6a76;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-banner h2,
+.status-card h3,
+.auth-card h3,
+.auth-info-card h3 {
+  margin: 0;
+  color: #113840;
+}
+
+.auth-banner p,
+.status-card p,
+.auth-card p,
+.auth-info-card p,
+.teacher-session-copy {
+  color: #48656d;
+}
+
+.teacher-session-card {
+  min-width: 220px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.teacher-session-name {
+  margin: 0;
+  color: #113840;
+  font-weight: 800;
+}
+
+.teacher-session-copy {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.auth-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-mode-nav {
+  display: inline-flex;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  border: 1px solid #d6e5e8;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fbfdfe 0%, #f3f8f9 100%);
+}
+
+.auth-mode-button,
+.primary-button,
+.secondary-button {
+  min-height: 2.75rem;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-mode-button {
+  padding: 0.75rem 1rem;
+  border: 0;
+  background: transparent;
+  color: #35525a;
+}
+
+.auth-mode-button--active {
+  background: #0f6a76;
+  color: #fff;
+  box-shadow: 0 10px 20px rgb(15 106 118 / 0.18);
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 1rem;
+}
+
+.auth-card,
+.auth-info-card,
+.status-card {
+  padding: 1.3rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 1rem;
+}
+
+.auth-form--signup {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.field span {
+  color: #35525a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  min-height: 2.85rem;
+  border: 1px solid #c9dde1;
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  color: #163a41;
+  background: #fff;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.auth-mode-button:focus-visible {
+  outline: 2px solid #0f6a76;
+  outline-offset: 2px;
+}
+
+.field--full {
+  grid-column: 1 / -1;
+}
+
+.primary-button {
+  border: 0;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #0f6a76 0%, #184d57 100%);
+}
+
+.primary-button[disabled] {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.secondary-button {
+  border: 1px solid #b9d2d8;
+  padding: 0.75rem 1rem;
+  color: #184d57;
+  background: #fff;
+}
+
+.message {
+  margin: 1rem 0 0;
+  padding: 0.8rem 0.95rem;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
+.message--info {
+  background: #edf7f8;
+  color: #0f6a76;
+}
+
+.message--error {
+  background: #fff1f1;
+  color: #9a2f2f;
+}
+
+.auth-info-card ol {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+  color: #35525a;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.status-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .header h1 {
   margin: 0.4rem 0 0;
   color: #113840;
@@ -81,8 +292,22 @@
 }
 
 @media (max-width: 720px) {
+  .auth-banner {
+    flex-direction: column;
+  }
+
+  .teacher-session-card {
+    min-width: 0;
+    width: 100%;
+  }
+
   .tab-list {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .auth-grid,
+  .auth-form--signup {
     grid-template-columns: 1fr;
   }
 }

@@ -2,14 +2,15 @@
 
 Testing Portal is a role-based Angular web application where teachers publish timed objective tests and students join by test code to complete them.
 
-This MVP version does not require user authentication.
+Students can access tests without authentication. Teachers must sign up, wait for admin approval, and then log in with username and password. The admin workspace uses a single static credential.
 
 ## App Summary
 
-- Welcome page for role selection (Teacher or Student).
-- Teacher flow to create, validate, and publish a test with a unique 6-digit code.
+- Welcome page for role selection and admin review entry.
+- Teacher sign-up, login, approval, and test publishing flow.
 - Student flow to join by code, complete a timed test, and see immediate scoring.
-- Firebase Realtime Database persistence for published tests.
+- Firebase Realtime Database persistence for published tests and teacher approval records.
+- Firebase Cloud Functions for privileged teacher approval and rejection.
 - CI + deployment workflow for Firebase Hosting.
 
 ## Installation and Quick Start
@@ -53,11 +54,21 @@ dist/testing-portal/browser
 
 ### Teacher Features
 
+- Create a teacher account with first name, last name, gender, phone number, email, username, and password.
+- Wait for admin approval before accessing the teacher workspace.
+- Log in with username and password after approval.
 - Create a test with title and duration (minutes).
 - Paste plain text question blocks.
 - Paste plain text answer key.
 - Validate parsed questions and answers before publish.
 - Publish test and receive a unique 6-digit code.
+
+### Admin Features
+
+- Log in with the configured static admin credential.
+- Review pending teacher account requests.
+- Approve teachers so they can access the teacher workspace.
+- Reject teachers and remove their stored account data through Firebase Cloud Functions.
 
 ### Student Features
 
@@ -109,18 +120,28 @@ dist/testing-portal/browser
 ### Route Map
 
 - / -> Welcome page
-- /teacher -> Teacher workspace
+- /teacher -> Teacher sign-up/login and approved teacher workspace
 - /student -> Student workspace
+- /admin -> Admin approval workspace
 - /** -> Redirect to /
 
 ### Teacher Workflow
 
 1. Open /teacher.
-2. Enter test title and duration.
-3. Paste question template text.
-4. Paste answer key text.
-5. Parse and validate content.
-6. Publish and share generated 6-digit test code.
+2. Create an account or log in with your username and password.
+3. Wait for admin approval if the account is still pending.
+4. Enter test title and duration.
+5. Paste question template text.
+6. Paste answer key text.
+7. Parse and validate content.
+8. Publish and share generated 6-digit test code.
+
+### Admin Workflow
+
+1. Open /admin.
+2. Log in with the static admin credential.
+3. Review pending teacher account information.
+4. Approve to unlock teacher access, or reject to remove the account.
 
 ### Student Workflow
 
@@ -160,16 +181,20 @@ D. 12
 
 1. Create or select a Firebase project.
 2. Enable Realtime Database for the project.
-3. Update Firebase web config in:
+3. Enable Email/Password authentication in Firebase Authentication.
+4. Enable Firebase Cloud Functions for the project.
+5. Update Firebase web config in:
    - src/environments/environment.ts
    - src/environments/environment.prod.ts
-4. Ensure .firebaserc points to the same Firebase project ID.
-5. Publish database rules from database.rules.json.
+6. Ensure .firebaserc points to the same Firebase project ID.
+7. Publish database rules from database.rules.json.
+8. Deploy Cloud Functions from the functions directory.
 
 ## Deployment
 
 Firebase hosting is configured in firebase.json with:
 
+- functions source: functions
 - public directory: dist/testing-portal/browser
 - SPA rewrite to /index.html
 - database rules file: database.rules.json
@@ -183,8 +208,12 @@ On push to main, deployment workflow builds the app, deploys database rules, and
 
 ## Known Limitations and Notes
 
-- MVP has no authentication.
 - Student profile data and result summaries are not persisted to Firebase.
 - Timer is client-side; network interruptions can affect active test sessions.
 - Input parser expects strict plain text formats for questions and answer keys.
 - Project uses Firebase Web SDK directly (firebase package).
+
+## Current Notes
+
+- Admin auth is intentionally static and client-visible for this MVP.
+- Teacher login uses username lookup plus Firebase Authentication email/password sign-in.

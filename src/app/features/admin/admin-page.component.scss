@@ -1,0 +1,203 @@
+:host {
+	display: block;
+}
+
+.admin-page {
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: 1.5rem 1rem 3rem;
+	display: grid;
+	gap: 1rem;
+}
+
+.admin-header {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.back-link {
+	color: #0b6978;
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.admin-header h1,
+.admin-card h2,
+.admin-card h3 {
+	margin: 0;
+	color: #113840;
+}
+
+.admin-header p,
+.admin-card p,
+.review-details dd {
+	margin: 0;
+	color: #48656d;
+}
+
+.eyebrow {
+	margin: 0 0 0.35rem;
+	color: #0f6a76;
+	font-size: 0.8rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.admin-card {
+	padding: 1.3rem;
+	border: 1px solid #d6e5e8;
+	border-radius: 20px;
+	background: linear-gradient(180deg, #ffffff 0%, #f5fafb 100%);
+	box-shadow: 0 16px 30px rgb(17 56 64 / 0.06);
+}
+
+.admin-card--login {
+	max-width: 540px;
+	gap: 1rem;
+	display: grid;
+}
+
+.login-form,
+.review-grid {
+	display: grid;
+	gap: 1rem;
+}
+
+.field {
+	display: grid;
+	gap: 0.38rem;
+}
+
+.field span,
+.review-details dt {
+	color: #35525a;
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.field input {
+	min-height: 2.85rem;
+	border: 1px solid #c9dde1;
+	border-radius: 14px;
+	padding: 0.75rem 0.9rem;
+	font: inherit;
+	color: #163a41;
+	background: #fff;
+}
+
+.field input:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.danger-button:focus-visible {
+	outline: 2px solid #0f6a76;
+	outline-offset: 2px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+	min-height: 2.75rem;
+	padding: 0.75rem 1rem;
+	border-radius: 14px;
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.primary-button {
+	border: 0;
+	color: #fff;
+	background: linear-gradient(135deg, #0f6a76 0%, #184d57 100%);
+}
+
+.secondary-button {
+	border: 1px solid #b9d2d8;
+	color: #184d57;
+	background: #fff;
+}
+
+.danger-button {
+	border: 1px solid #e7b9b9;
+	color: #8d2d2d;
+	background: #fff5f5;
+}
+
+.primary-button[disabled],
+.secondary-button[disabled],
+.danger-button[disabled] {
+	opacity: 0.72;
+	cursor: progress;
+}
+
+.message {
+	margin: 0;
+	padding: 0.8rem 0.95rem;
+	border-radius: 14px;
+	font-weight: 600;
+}
+
+.message--error {
+	background: #fff1f1;
+	color: #9a2f2f;
+}
+
+.admin-toolbar {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	align-items: center;
+}
+
+.toolbar-actions,
+.review-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.review-grid {
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.review-card {
+	display: grid;
+	gap: 1rem;
+}
+
+.review-card__header {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	align-items: flex-start;
+}
+
+.status-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.35rem 0.7rem;
+	border-radius: 999px;
+	background: #edf7f8;
+	color: #0f6a76;
+	font-size: 0.82rem;
+	font-weight: 700;
+	text-transform: capitalize;
+}
+
+.review-details {
+	margin: 0;
+	display: grid;
+	gap: 0.8rem;
+}
+
+.review-details div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+@media (max-width: 720px) {
+	.admin-toolbar,
+	.review-card__header {
+		flex-direction: column;
+	}
+}

@@ -1,0 +1,115 @@
+<main class="admin-page">
+	<header class="admin-header">
+		<a routerLink="/" class="back-link">Back</a>
+		<div>
+			<h1>Admin Workspace</h1>
+			<p>Review teacher sign-up requests and approve or reject access.</p>
+		</div>
+	</header>
+
+	@if (!isLoggedIn()) {
+		<section class="admin-card admin-card--login">
+			<div>
+				<p class="eyebrow">Admin Login</p>
+				<h2>Static admin access</h2>
+				<p>Use the configured admin credential to review teacher account requests.</p>
+			</div>
+
+			<form class="login-form" [formGroup]="loginForm" (ngSubmit)="login()">
+				<label class="field">
+					<span>Username</span>
+					<input type="text" formControlName="username" autocomplete="username" />
+				</label>
+
+				<label class="field">
+					<span>Password</span>
+					<input type="password" formControlName="password" autocomplete="current-password" />
+				</label>
+
+				<button type="submit" class="primary-button">Log In</button>
+			</form>
+
+			@if (loginError()) {
+				<p class="message message--error">{{ loginError() }}</p>
+			}
+		</section>
+	} @else {
+		<section class="admin-toolbar admin-card">
+			<div>
+				<p class="eyebrow">Teacher Approval Queue</p>
+				<h2>{{ pendingCount() }} pending {{ pendingCount() === 1 ? 'account' : 'accounts' }}</h2>
+				<p>Approve to unlock teacher login. Reject to remove the account from the system.</p>
+			</div>
+
+			<div class="toolbar-actions">
+				<button type="button" class="secondary-button" (click)="refreshAccounts()">Refresh</button>
+				<button type="button" class="secondary-button" (click)="logout()">Log Out</button>
+			</div>
+		</section>
+
+		@if (dashboardError()) {
+			<p class="message message--error">{{ dashboardError() }}</p>
+		}
+
+		@if (isLoadingAccounts()) {
+			<section class="admin-card">
+				<p>Loading teacher accounts...</p>
+			</section>
+		} @else if (pendingCount() === 0) {
+			<section class="admin-card">
+				<h3>No pending teacher accounts</h3>
+				<p>New teacher sign-ups will appear here for review.</p>
+			</section>
+		} @else {
+			<section class="review-grid">
+				@for (account of pendingAccounts(); track account.uid) {
+					<article class="admin-card review-card">
+						<div class="review-card__header">
+							<div>
+								<h3>{{ account.firstName }} {{ account.lastName }}</h3>
+								<p>{{ account.email }}</p>
+							</div>
+							<span class="status-pill">{{ account.status }}</span>
+						</div>
+
+						<dl class="review-details">
+							<div>
+								<dt>Username</dt>
+								<dd>{{ account.username }}</dd>
+							</div>
+							<div>
+								<dt>Phone</dt>
+								<dd>{{ account.phoneNumber }}</dd>
+							</div>
+							<div>
+								<dt>Gender</dt>
+								<dd>{{ account.gender }}</dd>
+							</div>
+							<div>
+								<dt>Submitted</dt>
+								<dd>{{ formatCreatedAt(account.createdAtIso) }}</dd>
+							</div>
+						</dl>
+
+						<div class="review-actions">
+							<button
+								type="button"
+								class="primary-button"
+								[disabled]="isProcessing(account.uid, 'approve') || isProcessing(account.uid, 'reject')"
+								(click)="approveTeacher(account.uid)">
+								{{ isProcessing(account.uid, 'approve') ? 'Approving...' : 'Approve' }}
+							</button>
+							<button
+								type="button"
+								class="danger-button"
+								[disabled]="isProcessing(account.uid, 'approve') || isProcessing(account.uid, 'reject')"
+								(click)="rejectTeacher(account.uid)">
+								{{ isProcessing(account.uid, 'reject') ? 'Rejecting...' : 'Reject' }}
+							</button>
+						</div>
+					</article>
+				}
+			</section>
+		}
+	}
+</main>

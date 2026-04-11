@@ -35,6 +35,69 @@
           ".validate": false
         }
       }
+    },
+    "teacherUsernames": {
+      "$username": {
+        ".read": true,
+        ".write": "auth != null && !data.exists() && newData.hasChildren(['uid','email','username'])",
+        "uid": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 160"
+        },
+        "username": {
+          ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "teachers": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.hasChildren(['uid','firstName','lastName','gender','phoneNumber','email','username','normalizedUsername','status','createdAtIso'])",
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === $uid"
+        },
+        "firstName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+        },
+        "lastName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+        },
+        "gender": {
+          ".validate": "newData.isString() && (newData.val() === 'female' || newData.val() === 'male' || newData.val() === 'other' || newData.val() === 'prefer_not_to_say')"
+        },
+        "phoneNumber": {
+          ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 20"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 160"
+        },
+        "username": {
+          ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 32"
+        },
+        "normalizedUsername": {
+          ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 32"
+        },
+        "status": {
+          ".validate": "newData.isString() && newData.val() === 'pending'"
+        },
+        "createdAtIso": {
+          ".validate": "newData.isString()"
+        },
+        "approvedAtIso": {
+          ".validate": "!newData.exists()"
+        },
+        "rejectedAtIso": {
+          ".validate": "!newData.exists()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }

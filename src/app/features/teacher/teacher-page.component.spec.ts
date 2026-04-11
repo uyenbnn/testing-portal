@@ -1,9 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
 import { vi } from 'vitest';
 import { TestCodeService } from '../../core/services/test-code.service';
+import { TeacherAuthService } from '../../core/services/teacher-auth.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
+import { TeacherProfile } from '../../shared/models/auth.models';
 import { PublishedTest } from '../../shared/models/test.models';
 import { TeacherPageComponent } from './teacher-page.component';
 
@@ -32,6 +35,7 @@ describe('TeacherPageComponent', () => {
     isCodeTaken: ReturnType<typeof vi.fn>;
     publishTest: ReturnType<typeof vi.fn>;
   };
+  let teacherProfile: TeacherProfile;
 
   beforeEach(async () => {
     repository = {
@@ -39,6 +43,19 @@ describe('TeacherPageComponent', () => {
       deleteTest: vi.fn().mockResolvedValue(undefined),
       isCodeTaken: vi.fn().mockResolvedValue(false),
       publishTest: vi.fn().mockResolvedValue(undefined)
+    };
+    teacherProfile = {
+      uid: 'teacher-1',
+      firstName: 'Demo',
+      lastName: 'Teacher',
+      gender: 'prefer_not_to_say',
+      phoneNumber: '0900000000',
+      email: 'teacher@example.com',
+      username: 'demo.teacher',
+      normalizedUsername: 'demo.teacher',
+      status: 'approved',
+      createdAtIso: '2026-04-10T09:00:00.000Z',
+      approvedAtIso: '2026-04-10T10:00:00.000Z'
     };
 
     await TestBed.configureTestingModule({
@@ -53,6 +70,20 @@ describe('TeacherPageComponent', () => {
           provide: TestCodeService,
           useValue: {
             generateUniqueCode: vi.fn().mockResolvedValue('654321')
+          }
+        },
+        {
+          provide: TeacherAuthService,
+          useValue: {
+            currentProfile: signal(teacherProfile),
+            displayName: signal('Demo Teacher'),
+            isReady: signal(true),
+            isProfileLoading: signal(false),
+            isAuthenticated: signal(true),
+            login: vi.fn(),
+            signUp: vi.fn(),
+            logout: vi.fn(),
+            refreshProfile: vi.fn()
           }
         },
         {
