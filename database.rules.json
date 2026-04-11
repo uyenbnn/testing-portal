@@ -55,6 +55,7 @@
       }
     },
     "teachers": {
+      ".read": true,
       "$uid": {
         ".read": true,
         ".write": true,
