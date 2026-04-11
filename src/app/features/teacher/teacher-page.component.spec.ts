@@ -31,6 +31,35 @@ describe('TeacherPageComponent', () => {
         username: 'demo.teacher',
         displayName: 'Demo Teacher'
       }
+    },
+    {
+      code: '654321',
+      title: 'Reading Drill',
+      testType: 'reading',
+      durationMinutes: 30,
+      questions: [
+        {
+          number: 1,
+          prompt: 'What is the best title?',
+          passageId: 'A',
+          options: { A: 'Birds', B: 'Trees', C: 'Rivers', D: 'Clouds' }
+        }
+      ],
+      passages: [
+        {
+          id: 'A',
+          title: 'Forest Notes',
+          content: 'A short reading passage.',
+          questionNumbers: [1]
+        }
+      ],
+      answerKey: { 1: 'A' },
+      createdAtIso: '2026-04-11T08:00:00.000Z',
+      creator: {
+        uid: 'teacher-1',
+        username: 'demo.teacher',
+        displayName: 'Demo Teacher'
+      }
     }
   ];
 
@@ -135,7 +164,7 @@ describe('TeacherPageComponent', () => {
     expect(element.textContent).toContain('Midterm Review');
     expect(element.textContent).toContain('123456');
     expect(element.textContent).toContain('Standard MCQ');
-    expect(element.textContent).toContain('45 min');
+    expect(element.textContent).toContain('45 phút');
   });
 
   it('deletes a selected test after confirmation', async () => {
@@ -172,7 +201,23 @@ describe('TeacherPageComponent', () => {
     expect(element.querySelector('[role="dialog"]')).toBeTruthy();
     expect(element.textContent).toContain('Test Details');
     expect(element.textContent).toContain('Capital of France?');
-    expect(element.textContent).toContain('Correct answer: B');
+    expect(element.textContent).toContain('Đáp án đúng: B');
+  });
+
+  it('filters the created tests list by live search', async () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+
+    await openCreatedTestsTab(fixture);
+
+    const element = fixture.nativeElement as HTMLElement;
+    const searchInput = element.querySelector('input[type="search"]') as HTMLInputElement;
+
+    searchInput.value = 'reading';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(element.textContent).toContain('Reading Drill');
+    expect(element.textContent).not.toContain('Midterm Review');
   });
 
   it('publishes a reading test with passages in the payload', async () => {
@@ -313,8 +358,8 @@ describe('TeacherPageComponent', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('.confirm-card')).toBeTruthy();
-    expect(element.textContent).toContain('Delete this test?');
-    expect(element.textContent).toContain('Students will no longer be able to join it.');
+    expect(element.textContent).toContain('Xóa bài kiểm tra này?');
+    expect(element.textContent).toContain('Học sinh sẽ không thể làm bài kiểm tra này.');
     expect(repository.deleteTest).not.toHaveBeenCalled();
   });
 
@@ -326,14 +371,14 @@ describe('TeacherPageComponent', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain('Create a Test');
+    expect(element.textContent).toContain('Tạo bài kiểm tra');
     expect(element.textContent).not.toContain('Midterm Review');
 
     const createdTab = element.querySelector('#created-tab') as HTMLButtonElement;
     createdTab.click();
     fixture.detectChanges();
 
-    expect(element.textContent).toContain('Created Tests');
+    expect(element.textContent).toContain('Các bài kiểm tra đã tạo');
     expect(element.textContent).toContain('Midterm Review');
   });
 });

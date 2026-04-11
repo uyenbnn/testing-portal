@@ -6,15 +6,45 @@
 		</div>
 	</div>
 
+	@if (createdTestItems().length > 0 || hasActiveFilters()) {
+		<div class="filter-toolbar" aria-label="Bộ lọc bài kiểm tra">
+			<label class="filter-field filter-field--search">
+				<span>Tìm kiếm</span>
+				<input
+					#searchInput
+					type="search"
+					class="filter-input"
+					[placeholder]="searchPlaceholder()"
+					[value]="searchQuery()"
+					(input)="setSearchQuery(searchInput.value)" />
+			</label>
+
+			<label class="filter-field">
+				<span>Loại bài</span>
+				<select #typeSelect class="filter-select" [value]="testTypeFilter()" (change)="setTestTypeFilter(typeSelect.value)">
+					<option value="all">Tất cả</option>
+					<option value="standard">MCQ Tiêu chuẩn</option>
+					<option value="reading">Đọc hiểu</option>
+				</select>
+			</label>
+
+			<button type="button" class="ghost filter-clear" [disabled]="!hasActiveFilters()" (click)="clearFilters()">
+				Xóa bộ lọc
+			</button>
+		</div>
+
+		<p class="filter-summary" aria-live="polite">{{ resultsSummary() }}</p>
+	}
+
 	@if (isLoadingTests()) {
 		<p class="hint">Đang tải các bài kiểm tra đã tạo...</p>
 	} @else if (listError()) {
 		<p class="error-text">{{ listError() }}</p>
-	} @else if (createdTestItems().length === 0) {
-		<p class="hint">{{ emptyText() }}</p>
+	} @else if (filteredTestItems().length === 0) {
+		<p class="hint">{{ filteredEmptyText() }}</p>
 	} @else {
 		<div class="test-list" role="list">
-			@for (test of createdTestItems(); track test.code) {
+			@for (test of filteredTestItems(); track test.code) {
 				<article class="test-row" role="listitem">
 					<button
 						type="button"

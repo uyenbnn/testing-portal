@@ -7,7 +7,7 @@
 	margin: 0 auto;
 	padding: 1.5rem 1rem 3rem;
 	display: grid;
-	gap: 1rem;
+	gap: 1.25rem;
 }
 
 .admin-header {
@@ -63,6 +63,11 @@
 	gap: 1rem;
 }
 
+.admin-card--section-intro {
+	display: grid;
+	gap: 0.35rem;
+}
+
 .login-form,
 .review-grid {
 	display: grid;
@@ -94,7 +99,8 @@
 .field input:focus-visible,
 .primary-button:focus-visible,
 .secondary-button:focus-visible,
-.danger-button:focus-visible {
+.danger-button:focus-visible,
+.tab-button:focus-visible {
 	outline: 2px solid #0f6a76;
 	outline-offset: 2px;
 }
@@ -152,6 +158,66 @@
 	justify-content: space-between;
 	gap: 1rem;
 	align-items: center;
+}
+
+.tab-nav {
+	padding: 0.35rem;
+	border: 1px solid #d6e5e8;
+	border-radius: 18px;
+	background: linear-gradient(180deg, #fbfdfe 0%, #f3f8f9 100%);
+}
+
+.tab-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.tab-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem;
+	min-height: 2.75rem;
+	padding: 0.75rem 1rem;
+	border: 0;
+	border-radius: 14px;
+	background: transparent;
+	color: #35525a;
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.tab-button:hover {
+	background: rgb(15 106 118 / 0.08);
+	color: #0f6a76;
+}
+
+.tab-button--active {
+	background: #0f6a76;
+	color: #fff;
+	box-shadow: 0 10px 20px rgb(15 106 118 / 0.18);
+}
+
+.tab-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.6rem;
+	min-height: 1.6rem;
+	padding: 0 0.45rem;
+	border-radius: 999px;
+	background: rgb(255 255 255 / 0.24);
+	font-size: 0.82rem;
+	line-height: 1;
+}
+
+.tab-panel {
+	min-width: 0;
+	display: grid;
+	gap: 1rem;
 }
 
 .toolbar-actions,
@@ -212,5 +278,10 @@
 	.review-card__header,
 	.tests-summary {
 		flex-direction: column;
+	}
+
+	.tab-list {
+		display: grid;
+		grid-template-columns: 1fr;
 	}
 }

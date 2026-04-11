@@ -9,6 +9,8 @@ import { PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../sha
 import { TeacherTestLibrary } from '../teacher/components/teacher-test-library/teacher-test-library';
 import { CreatedTestItem, PassageQuestionGroup } from '../teacher/teacher-page.models';
 
+type AdminPageTab = 'approvals' | 'tests';
+
 @Component({
 	selector: 'app-admin-page',
 	imports: [ReactiveFormsModule, RouterLink, TeacherTestLibrary],
@@ -33,6 +35,7 @@ export class AdminPageComponent {
 	readonly loginError = signal('');
 	readonly dashboardError = signal('');
 	readonly testsError = signal('');
+	readonly activeTab = signal<AdminPageTab>('approvals');
 	readonly pendingAccounts = signal<AdminTeacherReviewItem[]>([]);
 	readonly publishedTests = signal<PublishedTest[]>([]);
 	readonly deletingCodes = signal<Record<string, boolean>>({});
@@ -41,6 +44,10 @@ export class AdminPageComponent {
 	readonly actionStates = signal<Record<string, 'approve' | 'reject'>>({});
 	readonly pendingCount = computed(() => this.pendingAccounts().length);
 	readonly totalTestCount = computed(() => this.publishedTests().length);
+	readonly tabs: { id: AdminPageTab; label: string; count: () => number }[] = [
+		{ id: 'approvals', label: 'Approve Users', count: this.pendingCount },
+		{ id: 'tests', label: 'Manage Tests', count: this.totalTestCount }
+	];
 	readonly createdTestItems = computed<CreatedTestItem[]>(() =>
 		this.publishedTests().map((test) => ({
 			...test,
@@ -88,6 +95,7 @@ export class AdminPageComponent {
 
 	logout(): void {
 		this.session.logout();
+		this.activeTab.set('approvals');
 		this.pendingAccounts.set([]);
 		this.publishedTests.set([]);
 		this.dashboardError.set('');
@@ -100,6 +108,14 @@ export class AdminPageComponent {
 
 	async refreshAccounts(): Promise<void> {
 		await this.loadDashboard();
+	}
+
+	setActiveTab(tab: AdminPageTab): void {
+		if (this.activeTab() === tab) {
+			return;
+		}
+
+		this.activeTab.set(tab);
 	}
 
 	openTestDetails(test: CreatedTestItem): void {
