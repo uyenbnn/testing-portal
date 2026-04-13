@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { ReactiveFormsModule, FormGroup } from '@angular/forms';
-import { ParseError, TestType } from '../../../../shared/models/test.models';
+import { ReactiveFormsModule, FormGroup, FormArray } from '@angular/forms';
+import { ParseError, TestType, OptionKey } from '../../../../shared/models/test.models';
 import { TeacherTestTypeOption } from '../../teacher-page.models';
 
 @Component({
@@ -22,6 +22,39 @@ export class TeacherTestBuilder {
   readonly isPublishing = input(false);
   readonly publishedCode = input('');
   readonly errors = input<readonly ParseError[]>([]);
+  readonly isTableMode = input(false);
+  readonly numQuestionsValue = input(0);
+  readonly numPassagesValue = input(0);
+  readonly readingPassageOptions = input<readonly { value: string; label: string }[]>([]);
+
+  readonly MCQ_ANSWER_OPTIONS: OptionKey[] = ['A', 'B', 'C', 'D'];
+
+  getMcqTableControls() {
+    const formArray = this.form().get('questionsTable') as FormArray;
+    return (formArray?.controls || []) as any[];
+  }
+
+  getReadingPassageControls() {
+    const formArray = this.form().get('readingPassages') as FormArray;
+    return (formArray?.controls || []) as any[];
+  }
+
+  getQuestionsByPassage(passageId: string | null | undefined) {
+    if (!passageId) {
+      return [] as any[];
+    }
+
+    return this.getMcqTableControls().filter((control) => control.get('passageId')?.value === passageId);
+  }
+
+  getPassageLabel(passageId: string | null | undefined): string {
+    if (!passageId) {
+      return '';
+    }
+
+    const option = this.readingPassageOptions().find((item) => item.value === passageId);
+    return option?.label ?? passageId;
+  }
 
   readonly useQuestionTemplate = output<void>();
   readonly useAnswerTemplate = output<void>();

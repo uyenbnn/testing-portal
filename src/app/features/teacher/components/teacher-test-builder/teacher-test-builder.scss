@@ -1,6 +1,6 @@
 .layout {
 	display: grid;
-	grid-template-columns: 2fr 1fr;
+	grid-template-columns: 1fr;
 	gap: 1rem;
 }
 
@@ -127,8 +127,194 @@ select:focus-visible {
 	color: #3b555f;
 }
 
+/* MCQ Table Styles */
+.mcq-table-section {
+	margin: 0.65rem 0;
+}
+
+.passage-section {
+	display: grid;
+	gap: 0.75rem;
+	margin: 0.5rem 0 1rem;
+}
+
+.passage-card {
+	border: 1px solid #d4e3e7;
+	border-radius: 10px;
+	padding: 0.75rem;
+	background: #f8fbfc;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.passage-label {
+	margin: 0;
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #143840;
+}
+
+.mcq-table-wrapper {
+	overflow-x: auto;
+	border-radius: 10px;
+	border: 1px solid #b7cfd4;
+}
+
+.mcq-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.mcq-table thead {
+	background: #f0f4f5;
+	border-bottom: 2px solid #b7cfd4;
+}
+
+.mcq-table th {
+	padding: 0.75rem;
+	text-align: left;
+	font-weight: 700;
+	color: #143840;
+	border-right: 1px solid #b7cfd4;
+}
+
+.mcq-table th:last-child {
+	border-right: 0;
+}
+
+.mcq-table tbody tr {
+	border-bottom: 1px solid #dce6e9;
+}
+
+.mcq-table tbody tr:hover {
+	background: #f9fbfc;
+}
+
+.mcq-table td {
+	padding: 0.5rem;
+	border-right: 1px solid #e5ecef;
+	position: relative;
+}
+
+.mcq-table td:last-child {
+	border-right: 0;
+}
+
+.col-number {
+	width: 4%;
+	text-align: center;
+	font-weight: 600;
+	color: #4a656d;
+	background: #f9fbfc;
+}
+
+.col-question {
+	width: 25%;
+	min-width: 150px;
+}
+
+.col-passage {
+	width: 12%;
+	min-width: 100px;
+}
+
+.col-answer {
+	width: 14%;
+	min-width: 90px;
+}
+
+.col-correct-answer {
+	width: 10%;
+	min-width: 85px;
+}
+
+.input-field {
+	width: 100%;
+	border: 1px solid #b7cfd4;
+	border-radius: 6px;
+	padding: 0.5rem;
+	font: inherit;
+	font-size: 0.9rem;
+	background: #fff;
+	color: #143840;
+	transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.input-field:focus {
+	outline: 0;
+	border-color: #0f6a76;
+	box-shadow: 0 0 0 2px rgb(15 106 118 / 0.12);
+}
+
+.input-field:hover:not(:focus) {
+	border-color: #8fb9c0;
+}
+
+.input-field.has-error {
+	border-color: #c41c1c;
+	background: #fef8f8;
+}
+
+.input-field.has-error:focus {
+	box-shadow: 0 0 0 2px rgb(196 28 28 / 0.12);
+}
+
+.field-error {
+	display: block;
+	color: #c41c1c;
+	font-size: 0.75rem;
+	margin-top: 0.25rem;
+	font-weight: 500;
+}
+
 @media (max-width: 900px) {
 	.layout {
 		grid-template-columns: 1fr;
 	}
+
+	.mcq-table {
+		font-size: 0.85rem;
+	}
+
+	.mcq-table th,
+	.mcq-table td {
+		padding: 0.4rem;
+	}
+
+	.col-question {
+		width: 20%;
+		min-width: 120px;
+	}
+
+	.col-answer {
+		width: 12%;
+		min-width: 70px;
+	}
+
+	.col-correct-answer {
+		width: 8%;
+		min-width: 70px;
+	}
+
+	.input-field {
+		padding: 0.4rem;
+		font-size: 0.85rem;
+	}
 }
+
+@media (max-width: 768px) {
+	.mcq-table-wrapper {
+		overflow-x: auto;
+	}
+
+	.input-field {
+		padding: 0.35rem;
+		font-size: 0.8rem;
+	}
+
+	.field-error {
+		font-size: 0.7rem;
+	}
+}
+

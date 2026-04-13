@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { startWith } from 'rxjs';
 import { TestCodeService } from '../../core/services/test-code.service';
@@ -8,7 +8,7 @@ import { TeacherAuthService } from '../../core/services/teacher-auth.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
 import { TeacherGender, TeacherProfile } from '../../shared/models/auth.models';
-import { ParseError, PublishedTest, ReadingPassage, TestQuestion, TestType } from '../../shared/models/test.models';
+import { ParseError, PublishedTest, ReadingPassage, TestQuestion, TestType, OptionKey } from '../../shared/models/test.models';
 import { TeacherTestBuilder } from './components/teacher-test-builder/teacher-test-builder';
 import { TeacherTestLibrary } from './components/teacher-test-library/teacher-test-library';
 import { CreatedTestItem, PassageQuestionGroup, TeacherTestTypeOption } from './teacher-page.models';
@@ -38,6 +38,10 @@ export class TeacherPageComponent implements OnInit {
     title: this.fb.control('', [Validators.required]),
     testType: this.fb.control<TestType>('standard', [Validators.required]),
     durationMinutes: this.fb.control(30, [Validators.required, Validators.min(1)]),
+    numQuestions: this.fb.control<number | null>(null),
+    numPassages: this.fb.control<number | null>(null),
+    questionsTable: this.fb.array<any>([]),
+    readingPassages: this.fb.array<any>([]),
     questionText: this.fb.control('', [Validators.required]),
     answerText: this.fb.control('', [Validators.required])
   });
@@ -72,6 +76,7 @@ export class TeacherPageComponent implements OnInit {
   readonly authError = signal('');
   readonly authNotice = signal('Tạo tài khoản giáo viên hoặc đăng nhập để tạo bài kiểm tra.'); // "Create a teacher account or log in to publish tests."
   readonly hasLoadedApprovedTests = signal(false);
+  readonly MCQ_ANSWER_OPTIONS: OptionKey[] = ['A', 'B', 'C', 'D'];
 
   readonly teacherProfile = this.teacherAuth.currentProfile;
   readonly teacherDisplayName = this.teacherAuth.displayName;
@@ -103,6 +108,12 @@ export class TeacherPageComponent implements OnInit {
 
   readonly parseResult = computed(() => {
     const formValue = this.formValue();
+    const isTableMode = this.isTableMode();
+
+    if (isTableMode) {
+      return this.buildParseResultFromTableRows();
+    }
+
     return this.templateService.parse(
       formValue.questionText ?? '',
       formValue.answerText ?? '',
@@ -113,6 +124,28 @@ export class TeacherPageComponent implements OnInit {
   readonly selectedTestType = computed(() => this.formValue().testType ?? 'standard');
   readonly questionErrors = computed(() => this.parseResult().errors.filter((error) => error.scope === 'question'));
   readonly answerErrors = computed(() => this.parseResult().errors.filter((error) => error.scope === 'answer'));
+
+  readonly isTableMode = computed(() => {
+    const testType = this.selectedTestType();
+    const numQuestions = this.formValue().numQuestions ?? 0;
+    const numPassages = this.formValue().numPassages ?? 0;
+
+    if (testType === 'reading') {
+      return numPassages > 0;
+    }
+
+    return numQuestions > 0;
+  });
+  readonly questionsTableFormArray = computed(() => this.form.get('questionsTable') as FormArray);
+  readonly readingPassagesFormArray = computed(() => this.form.get('readingPassages') as FormArray);
+  readonly numQuestionsValue = computed(() => this.formValue().numQuestions ?? 0);
+  readonly numPassagesValue = computed(() => this.formValue().numPassages ?? 0);
+  readonly readingPassageOptions = computed(() =>
+    this.readingPassagesFormArray().controls.map((_, index) => ({
+      value: `P${index + 1}`,
+      label: `Đoạn ${index + 1}`
+    }))
+  );
 
   readonly previewQuestionCount = computed(() => this.parseResult().questions.length);
   readonly previewPassageCount = computed(() => this.parseResult().passages.length);
@@ -151,6 +184,26 @@ export class TeacherPageComponent implements OnInit {
   ];
 
   constructor() {
+    effect(() => {
+      const testType = this.selectedTestType();
+      const numQuestions = this.numQuestionsValue();
+      const numPassages = this.numPassagesValue();
+      const readingPassages = this.formValue().readingPassages ?? [];
+
+      if (testType === 'standard' && numQuestions > 0 && numQuestions <= 100) {
+        this.regenerateMcqTableRows(numQuestions, 'standard');
+        this.readingPassagesFormArray().clear();
+      } else if (testType === 'reading' && numPassages > 0 && numPassages <= 50) {
+        // Track per-passage row values so question table regenerates when questionCount changes.
+        void readingPassages;
+        this.regenerateReadingPassageRows(numPassages);
+        this.regenerateReadingQuestionsByPassages();
+      } else {
+        this.questionsTableFormArray().clear();
+        this.readingPassagesFormArray().clear();
+      }
+    });
+
     effect(() => {
       const accessState = this.accessState();
 
@@ -300,33 +353,50 @@ export class TeacherPageComponent implements OnInit {
     this.errors.set([]);
     this.form.markAllAsTouched();
 
-    if (this.form.invalid) {
-      const missingFields: string[] = [];
+    const isTableMode = this.isTableMode();
+    const testType = this.form.controls.testType.value;
 
-      if (this.form.controls.title.invalid) {
-        missingFields.push('test title');
-      }
-
-      if (this.form.controls.questionText.invalid) {
-        missingFields.push('question template');
-      }
-
-      if (this.form.controls.answerText.invalid) {
-        missingFields.push('answer key template');
-      }
-
-      const message = missingFields.length > 0
-        ? `Please fill all required fields: ${missingFields.join(', ')}.`
-        : 'Please fill all required fields.';
-
-      this.errors.set([{ scope: 'general', line: 1, message }]);
+    // Validate title and duration always
+    if (!this.form.controls.title.value || !this.form.controls.title.value.trim()) {
+      this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập tiêu đề bài kiểm tra.' }]);
       return;
+    }
+
+    if (testType !== 'standard' && testType !== 'reading') {
+      this.errors.set([{ scope: 'general', line: 1, message: 'Loại bài kiểm tra không hợp lệ.' }]);
+      return;
+    }
+
+    // Validate based on input mode
+    if (isTableMode) {
+      if ((this.numQuestionsValue() ?? 0) <= 0) {
+        if (testType === 'standard') {
+          this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập số lượng câu hỏi.' }]);
+          return;
+        }
+      }
+
+      if (testType === 'reading' && (this.numPassagesValue() ?? 0) <= 0) {
+        this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập số lượng đoạn văn.' }]);
+        return;
+      }
+    } else {
+      // Template mode validation
+      if (!this.form.controls.questionText.value || !this.form.controls.questionText.value.trim()) {
+        this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập mẫu câu hỏi.' }]);
+        return;
+      }
+
+      if (!this.form.controls.answerText.value || !this.form.controls.answerText.value.trim()) {
+        this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập mẫu đáp án.' }]);
+        return;
+      }
     }
 
     const parsed = this.parseResult();
     if (parsed.errors.length > 0 || parsed.questions.length === 0) {
       this.errors.set(
-        parsed.errors.length > 0 ? parsed.errors : [{ scope: 'general', line: 1, message: 'No questions detected.' }]
+        parsed.errors.length > 0 ? parsed.errors : [{ scope: 'general', line: 1, message: 'Không phát hiện câu hỏi.' }]
       );
       return;
     }
@@ -338,14 +408,14 @@ export class TeacherPageComponent implements OnInit {
       const teacherProfile = this.teacherProfile();
 
       if (!teacherProfile) {
-        this.errors.set([{ scope: 'general', line: 1, message: 'Your teacher session is missing profile details. Please sign in again.' }]);
+        this.errors.set([{ scope: 'general', line: 1, message: 'Phiên của bạn thiếu chi tiết hồ sơ. Vui lòng đăng nhập lại.' }]);
         return;
       }
 
       const payload: PublishedTest = {
         code,
         title: this.form.controls.title.value,
-        testType: this.form.controls.testType.value,
+        testType: testType,
         durationMinutes: this.form.controls.durationMinutes.value,
         questions: parsed.questions,
         answerKey: parsed.answerKey,
@@ -630,4 +700,259 @@ export class TeacherPageComponent implements OnInit {
 
     return `Vui lòng sửa các trường sau: ${invalidFields.join(', ')}.`;
   }
+
+  regenerateMcqTableRows(count: number, testType: TestType): void {
+    const formArray = this.questionsTableFormArray();
+    const targetCount = Math.max(0, Math.min(count, 100)); // Clamp between 0-100
+
+    // Remove excess rows
+    while (formArray.length > targetCount) {
+      formArray.removeAt(formArray.length - 1);
+    }
+
+    // Add new rows
+    while (formArray.length < targetCount) {
+      const rowIndex = formArray.length + 1;
+      formArray.push(
+        this.fb.group({
+          questionNumber: this.fb.control(rowIndex),
+          question: this.fb.control('', [Validators.required]),
+          answerA: this.fb.control('', [Validators.required]),
+          answerB: this.fb.control('', [Validators.required]),
+          answerC: this.fb.control('', [Validators.required]),
+          answerD: this.fb.control('', [Validators.required]),
+          passageId: this.fb.control<string | null>(testType === 'reading' ? null : 'P1'),
+          correctAnswer: this.fb.control<OptionKey | null>(null, [Validators.required])
+        })
+      );
+    }
+  }
+
+  regenerateReadingPassageRows(count: number): void {
+    const formArray = this.readingPassagesFormArray();
+    const targetCount = Math.max(0, Math.min(count, 50));
+
+    while (formArray.length > targetCount) {
+      formArray.removeAt(formArray.length - 1);
+    }
+
+    while (formArray.length < targetCount) {
+      const rowIndex = formArray.length + 1;
+      formArray.push(
+        this.fb.group({
+          passageId: this.fb.control(`P${rowIndex}`),
+          title: this.fb.control('', [Validators.required]),
+          content: this.fb.control('', [Validators.required]),
+          questionCount: this.fb.control<number | null>(1, [Validators.required, Validators.min(1), Validators.max(100)])
+        })
+      );
+    }
+  }
+
+  regenerateReadingQuestionsByPassages(): void {
+    const questionsArray = this.questionsTableFormArray();
+    const passagesArray = this.readingPassagesFormArray();
+
+    const targetPassageIds: string[] = [];
+    for (let i = 0; i < passagesArray.length; i++) {
+      const passage = passagesArray.at(i)?.getRawValue();
+      const passageId = `P${i + 1}`;
+      const questionCount = Math.max(0, Math.min(Number(passage?.questionCount ?? 0), 100));
+      for (let j = 0; j < questionCount; j++) {
+        targetPassageIds.push(passageId);
+      }
+    }
+
+    const currentPassageIds = questionsArray.controls.map((control) => control.get('passageId')?.value as string);
+    const isSameLayout =
+      currentPassageIds.length === targetPassageIds.length
+      && currentPassageIds.every((value, index) => value === targetPassageIds[index]);
+
+    if (isSameLayout) {
+      return;
+    }
+
+    questionsArray.clear();
+
+    let questionNumber = 1;
+    for (let i = 0; i < passagesArray.length; i++) {
+      const passage = passagesArray.at(i)?.getRawValue();
+      const passageId = `P${i + 1}`;
+      const questionCount = Math.max(0, Math.min(Number(passage?.questionCount ?? 0), 100));
+
+      for (let j = 0; j < questionCount; j++) {
+        questionsArray.push(
+          this.fb.group({
+            questionNumber: this.fb.control(questionNumber),
+            question: this.fb.control('', [Validators.required]),
+            answerA: this.fb.control('', [Validators.required]),
+            answerB: this.fb.control('', [Validators.required]),
+            answerC: this.fb.control('', [Validators.required]),
+            answerD: this.fb.control('', [Validators.required]),
+            passageId: this.fb.control<string | null>(passageId),
+            correctAnswer: this.fb.control<OptionKey | null>(null, [Validators.required])
+          })
+        );
+        questionNumber += 1;
+      }
+    }
+  }
+
+  private buildParseResultFromTableRows(): { questions: TestQuestion[]; passages: ReadingPassage[]; answerKey: Record<number, OptionKey>; errors: ParseError[] } {
+    const testType = this.selectedTestType();
+    const formArray = this.questionsTableFormArray();
+    const readingPassagesArray = this.readingPassagesFormArray();
+    const questions: TestQuestion[] = [];
+    const passages: ReadingPassage[] = [];
+    const answerKey: Record<number, OptionKey> = {};
+    const errors: ParseError[] = [];
+    const passageQuestionMap: Record<string, number[]> = {};
+
+    if (testType === 'reading') {
+      for (let i = 0; i < readingPassagesArray.length; i++) {
+        const row = readingPassagesArray.at(i);
+        const rowValue = row?.getRawValue() || {};
+        const passageId = `P${i + 1}`;
+
+        if (!rowValue.title || !rowValue.title.trim()) {
+          errors.push({
+            scope: 'question',
+            line: i + 1,
+            message: `Passage ${i + 1}: Title is required.`
+          });
+        }
+
+        if (!rowValue.content || !rowValue.content.trim()) {
+          errors.push({
+            scope: 'question',
+            line: i + 1,
+            message: `Passage ${i + 1}: Content is required.`
+          });
+        }
+
+        if (!rowValue.questionCount || Number(rowValue.questionCount) <= 0) {
+          errors.push({
+            scope: 'question',
+            line: i + 1,
+            message: `Passage ${i + 1}: Question count must be greater than 0.`
+          });
+        }
+
+        passages.push({
+          id: passageId,
+          title: rowValue.title?.trim() ?? '',
+          content: rowValue.content?.trim() ?? '',
+          questionNumbers: []
+        });
+        passageQuestionMap[passageId] = [];
+      }
+    }
+
+    for (let i = 0; i < formArray.length; i++) {
+      const row = formArray.at(i);
+      const rowValue = row?.getRawValue() || {};
+      const questionNumber = i + 1;
+
+      // Validate required fields
+      if (!rowValue.question || !rowValue.question.trim()) {
+        errors.push({
+          scope: 'question',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Question text is required.`
+        });
+        continue;
+      }
+
+      if (!rowValue.answerA || !rowValue.answerA.trim()) {
+        errors.push({
+          scope: 'answer',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Answer A is required.`
+        });
+      }
+
+      if (!rowValue.answerB || !rowValue.answerB.trim()) {
+        errors.push({
+          scope: 'answer',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Answer B is required.`
+        });
+      }
+
+      if (!rowValue.answerC || !rowValue.answerC.trim()) {
+        errors.push({
+          scope: 'answer',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Answer C is required.`
+        });
+      }
+
+      if (!rowValue.answerD || !rowValue.answerD.trim()) {
+        errors.push({
+          scope: 'answer',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Answer D is required.`
+        });
+      }
+
+      if (!rowValue.correctAnswer) {
+        errors.push({
+          scope: 'answer',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Correct answer selection is required.`
+        });
+      }
+
+      if (testType === 'reading' && !rowValue.passageId) {
+        errors.push({
+          scope: 'question',
+          line: questionNumber,
+          message: `Question ${questionNumber}: Passage selection is required.`
+        });
+      }
+
+      // Only add question if no errors for this row
+      if (!errors.some((e) => e.line === questionNumber)) {
+        questions.push({
+          number: questionNumber,
+          prompt: rowValue.question.trim(),
+          options: {
+            A: rowValue.answerA.trim(),
+            B: rowValue.answerB.trim(),
+            C: rowValue.answerC.trim(),
+            D: rowValue.answerD.trim()
+          },
+          passageId: testType === 'reading' ? rowValue.passageId : undefined
+        });
+
+        answerKey[questionNumber] = rowValue.correctAnswer;
+
+        if (testType === 'reading' && rowValue.passageId && passageQuestionMap[rowValue.passageId]) {
+          passageQuestionMap[rowValue.passageId].push(questionNumber);
+        }
+      }
+    }
+
+    if (testType === 'reading') {
+      for (const passage of passages) {
+        passage.questionNumbers = passageQuestionMap[passage.id] ?? [];
+
+        if (passage.questionNumbers.length === 0) {
+          errors.push({
+            scope: 'question',
+            line: Number.parseInt(passage.id.replace('P', ''), 10),
+            message: `${passage.title || passage.id}: At least one question must be assigned.`
+          });
+        }
+      }
+    }
+
+    return {
+      questions,
+      passages,
+      answerKey,
+      errors
+    };
+  }
 }
+

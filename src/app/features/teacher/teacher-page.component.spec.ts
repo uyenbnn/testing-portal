@@ -8,6 +8,7 @@ import { TestRepositoryService } from '../../core/services/test-repository.servi
 import { TestTemplateService } from '../../core/services/test-template.service';
 import { TeacherProfile } from '../../shared/models/auth.models';
 import { PublishedTest } from '../../shared/models/test.models';
+import { FormArray } from '@angular/forms';
 import { TeacherPageComponent } from './teacher-page.component';
 
 describe('TeacherPageComponent', () => {
@@ -254,6 +255,10 @@ describe('TeacherPageComponent', () => {
       title: 'Reading Practice',
       testType: 'reading',
       durationMinutes: 40,
+      numQuestions: null,
+      numPassages: null,
+      questionsTable: [],
+      readingPassages: [],
       questionText: 'Passage A: Forest Notes',
       answerText: '1. A'
     });
@@ -317,6 +322,10 @@ describe('TeacherPageComponent', () => {
       title: 'Standard Practice',
       testType: 'standard',
       durationMinutes: 30,
+      numQuestions: null,
+      numPassages: null,
+      questionsTable: [],
+      readingPassages: [],
       questionText: 'Question 1: What is 2 + 2?',
       answerText: '1. C'
     });
@@ -380,5 +389,145 @@ describe('TeacherPageComponent', () => {
 
     expect(element.textContent).toContain('Các bài kiểm tra đã tạo');
     expect(element.textContent).toContain('Midterm Review');
+  });
+
+  it('generates MCQ table rows when numQuestions is set for standard type', () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component.form.controls.numQuestions.setValue(3);
+    fixture.detectChanges();
+
+    const questionsTable = component.form.get('questionsTable') as FormArray;
+    expect(questionsTable?.length).toBe(3);
+
+    for (let i = 0; i < 3; i++) {
+      const row = questionsTable?.at(i);
+      expect(row?.get('questionNumber')?.value).toBe(i + 1);
+      expect(row?.get('question')?.value).toBe('');
+      expect(row?.get('answerA')?.value).toBe('');
+      expect(row?.get('answerB')?.value).toBe('');
+      expect(row?.get('answerC')?.value).toBe('');
+      expect(row?.get('answerD')?.value).toBe('');
+      expect(row?.get('correctAnswer')?.value).toBeNull();
+    }
+  });
+
+  it('publishes a standard test with table input', async () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance;
+    component.form.controls.title.setValue('Table Mode Test');
+    component.form.controls.testType.setValue('standard');
+    component.form.controls.durationMinutes.setValue(30);
+    component.form.controls.numQuestions.setValue(2);
+
+    // Fill table rows
+    component.regenerateMcqTableRows(2, 'standard');
+    const questionsTable = component.form.get('questionsTable') as FormArray;
+
+    const row0 = questionsTable.at(0);
+    row0.patchValue({
+      question: 'What is 2 + 2?',
+      answerA: '2',
+      answerB: '3',
+      answerC: '4',
+      answerD: '5',
+      correctAnswer: 'C'
+    });
+
+    const row1 = questionsTable.at(1);
+    row1.patchValue({
+      question: 'What is 5 + 3?',
+      answerA: '6',
+      answerB: '8',
+      answerC: '9',
+      answerD: '10',
+      correctAnswer: 'B'
+    });
+
+    await component.publishTest();
+
+    const publishedPayload = repository.publishTest.mock.calls.at(-1)?.[0];
+    expect(publishedPayload.title).toBe('Table Mode Test');
+    expect(publishedPayload.testType).toBe('standard');
+    expect(publishedPayload.questions).toHaveLength(2);
+    expect(publishedPayload.questions[0].prompt).toBe('What is 2 + 2?');
+    expect(publishedPayload.answerKey).toEqual({ 1: 'C', 2: 'B' });
+  });
+
+  it('shows validation error when table row is incomplete for table mode', async () => {
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component.form.controls.title.setValue('Test');
+    component.form.controls.numQuestions.setValue(1);
+    fixture.detectChanges();
+
+    // Leave row incomplete - no answer selected
+    component.regenerateMcqTableRows(1, 'standard');
+    const questionsTable = component.form.get('questionsTable') as FormArray;
+    const row = questionsTable.at(0);
+    row.patchValue({
+      question: 'What is 2 + 2?',
+      answerA: '2',
+      answerB: '3',
+      answerC: '4',
+      answerD: '5',
+      correctAnswer: null
+    });
+
+    await component.publishTest();
+
+    const errors = component.errors();
+    expect(errors.some((e) => e.message.includes('Correct answer'))).toBe(true);
+  });
+
+  it('maintains template mode for reading type (regression test)', async () => {
+    const templateService = TestBed.inject(TestTemplateService) as unknown as {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    templateService.parse.mockReturnValue({
+      questions: [
+        {
+          number: 1,
+          prompt: 'What is here?',
+          passageId: 'A',
+          options: { A: 'A', B: 'B', C: 'C', D: 'D' }
+        }
+      ],
+      passages: [
+        {
+          id: 'A',
+          title: 'Test',
+          content: 'Content',
+          questionNumbers: [1]
+        }
+      ],
+      answerKey: { 1: 'A' },
+      errors: []
+    });
+
+    const fixture = TestBed.createComponent(TeacherPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance;
+    component.form.controls.title.setValue('Reading Test');
+    component.form.controls.testType.setValue('reading');
+    component.form.controls.durationMinutes.setValue(45);
+    component.form.controls.questionText.setValue('Passage A: Test');
+    component.form.controls.answerText.setValue('1. A');
+
+    await component.publishTest();
+
+    expect(repository.publishTest).toHaveBeenCalled();
+    const publishedPayload = repository.publishTest.mock.calls.at(-1)?.[0];
+    expect(publishedPayload.testType).toBe('reading');
+    expect(publishedPayload.passages).toBeDefined();
   });
 });

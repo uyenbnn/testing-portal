@@ -15,30 +15,141 @@
 		<label for="durationMinutes">Thời lượng (phút)</label>
 		<input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
 
-		<div class="template-head">
-			<h3>Mẫu câu hỏi (dán văn bản thuần túy)</h3>
-			<button type="button" class="ghost" (click)="useQuestionTemplate.emit()">Sử dụng mẫu</button>
-		</div>
-		<textarea rows="12" formControlName="questionText"></textarea>
-		@if (questionErrors().length > 0) {
-			<ul class="field-error-list" aria-live="polite">
-				@for (error of questionErrors(); track error.message) {
-					<li>{{ error.message }}</li>
-				}
-			</ul>
+		@if (selectedTestType() === 'standard') {
+			<label for="numQuestions">Có bao nhiêu câu hỏi cho bài kiểm tra?</label>
+			<input
+				id="numQuestions"
+				type="number"
+				min="1"
+				max="100"
+				formControlName="numQuestions"
+				placeholder="Nhập số lượng câu hỏi (1-100)" />
 		}
 
-		<div class="template-head">
-			<h3>Mẫu đáp án (dán văn bản thuần túy)</h3>
-			<button type="button" class="ghost" (click)="useAnswerTemplate.emit()">Sử dụng mẫu</button>
-		</div>
-		<textarea rows="6" formControlName="answerText"></textarea>
-		@if (answerErrors().length > 0) {
-			<ul class="field-error-list" aria-live="polite">
-				@for (error of answerErrors(); track error.message) {
-					<li>{{ error.message }}</li>
+		@if (selectedTestType() === 'reading') {
+			<label for="numPassages">Có bao nhiêu đoạn văn trong bài kiểm tra?</label>
+			<input
+				id="numPassages"
+				type="number"
+				min="1"
+				max="50"
+				formControlName="numPassages"
+				placeholder="Nhập số lượng đoạn văn (1-50)" />
+		}
+
+		@if (isTableMode()) {
+			@if (selectedTestType() === 'standard') {
+				<div class="mcq-table-section">
+					<h3>Nhập câu hỏi và đáp án cho bài kiểm tra</h3>
+					<div class="mcq-table-wrapper">
+						<table class="mcq-table" role="table" aria-label="MCQ questions and answers">
+							<thead>
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">Câu hỏi</th>
+									<th scope="col">Đáp án A</th>
+									<th scope="col">Đáp án B</th>
+									<th scope="col">Đáp án C</th>
+									<th scope="col">Đáp án D</th>
+									<th scope="col">Đáp án đúng</th>
+								</tr>
+							</thead>
+							<tbody>
+								@for (rowControl of getMcqTableControls(); track $index; let idx = $index) {
+									<tr [formGroup]="rowControl">
+										<td class="col-number">{{ idx + 1 }}</td>
+										<td class="col-question">
+											<input type="text" class="input-field" formControlName="question" placeholder="Câu hỏi" [class.has-error]="rowControl.get('question')?.touched && rowControl.get('question')?.invalid" />
+											@if (rowControl.get('question')?.touched && rowControl.get('question')?.invalid) {
+												<small class="field-error">Bắt buộc</small>
+											}
+										</td>
+										<td class="col-answer"><input type="text" class="input-field" formControlName="answerA" placeholder="Đáp án A" [class.has-error]="rowControl.get('answerA')?.touched && rowControl.get('answerA')?.invalid" /></td>
+										<td class="col-answer"><input type="text" class="input-field" formControlName="answerB" placeholder="Đáp án B" [class.has-error]="rowControl.get('answerB')?.touched && rowControl.get('answerB')?.invalid" /></td>
+										<td class="col-answer"><input type="text" class="input-field" formControlName="answerC" placeholder="Đáp án C" [class.has-error]="rowControl.get('answerC')?.touched && rowControl.get('answerC')?.invalid" /></td>
+										<td class="col-answer"><input type="text" class="input-field" formControlName="answerD" placeholder="Đáp án D" [class.has-error]="rowControl.get('answerD')?.touched && rowControl.get('answerD')?.invalid" /></td>
+										<td class="col-correct-answer">
+											<select class="input-field" formControlName="correctAnswer" [class.has-error]="rowControl.get('correctAnswer')?.touched && rowControl.get('correctAnswer')?.invalid">
+												<option value="" disabled selected>Chọn</option>
+												@for (option of MCQ_ANSWER_OPTIONS; track option) {
+													<option [value]="option">{{ option }}</option>
+												}
+											</select>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			} @else {
+				<div class="passage-section">
+					<h3>Mỗi đoạn văn có bộ câu hỏi riêng</h3>
+					@for (passageControl of getReadingPassageControls(); track $index; let idx = $index) {
+						<div class="passage-card" [formGroup]="passageControl">
+							<p class="passage-label">Đoạn {{ idx + 1 }}</p>
+							<input type="number" min="1" max="100" class="input-field" formControlName="questionCount" placeholder="Số câu hỏi cho đoạn này" />
+							<input type="text" class="input-field" formControlName="title" placeholder="Tiêu đề đoạn văn" />
+							<textarea rows="4" class="input-field" formControlName="content" placeholder="Nội dung đoạn văn"></textarea>
+
+							<div class="mcq-table-section">
+								<h3>Câu hỏi cho {{ getPassageLabel(passageControl.get('passageId')?.value) }}</h3>
+								<div class="mcq-table-wrapper">
+									<table class="mcq-table" role="table" aria-label="Reading questions by passage">
+										<thead>
+											<tr>
+												<th scope="col">#</th>
+												<th scope="col">Câu hỏi</th>
+												<th scope="col">Đáp án A</th>
+												<th scope="col">Đáp án B</th>
+												<th scope="col">Đáp án C</th>
+												<th scope="col">Đáp án D</th>
+												<th scope="col">Đáp án đúng</th>
+											</tr>
+										</thead>
+										<tbody>
+											@for (rowControl of getQuestionsByPassage(passageControl.get('passageId')?.value); track rowControl.get('questionNumber')?.value) {
+												<tr [formGroup]="rowControl">
+													<td class="col-number">{{ rowControl.get('questionNumber')?.value }}</td>
+													<td class="col-question"><input type="text" class="input-field" formControlName="question" placeholder="Câu hỏi" /></td>
+													<td class="col-answer"><input type="text" class="input-field" formControlName="answerA" placeholder="Đáp án A" /></td>
+													<td class="col-answer"><input type="text" class="input-field" formControlName="answerB" placeholder="Đáp án B" /></td>
+													<td class="col-answer"><input type="text" class="input-field" formControlName="answerC" placeholder="Đáp án C" /></td>
+													<td class="col-answer"><input type="text" class="input-field" formControlName="answerD" placeholder="Đáp án D" /></td>
+													<td class="col-correct-answer">
+														<select class="input-field" formControlName="correctAnswer">
+															<option value="" disabled selected>Chọn</option>
+															@for (option of MCQ_ANSWER_OPTIONS; track option) {
+																<option [value]="option">{{ option }}</option>
+															}
+														</select>
+													</td>
+												</tr>
+											}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+				@if (questionErrors().length > 0) {
+					<ul class="field-error-list" aria-live="polite">
+						@for (error of questionErrors(); track error.message) {
+							<li>{{ error.message }}</li>
+						}
+					</ul>
 				}
-			</ul>
+				@if (answerErrors().length > 0) {
+					<ul class="field-error-list" aria-live="polite">
+						@for (error of answerErrors(); track error.message) {
+							<li>{{ error.message }}</li>
+						}
+					</ul>
+				}
+		} @else {
+			<p class="hint">Nhập {{ selectedTestType() === 'reading' ? 'số đoạn văn và số câu hỏi cho từng đoạn' : 'số lượng câu hỏi' }} để bắt đầu tạo bảng.</p>
 		}
 
 		<button class="primary" type="submit" [disabled]="isPublishing()">
@@ -57,19 +168,4 @@
 			</ul>
 		}
 	</form>
-
-	<aside class="card">
-		<h2>Xem trước xác thực</h2>
-		<p>Loại đã chọn: {{ selectedTestType() === 'reading' ? 'Đọc' : 'Trắc nghiệm tiêu chuẩn' }}</p>
-		@if (selectedTestType() === 'reading') {
-			<p>Số đoạn văn phát hiện: {{ previewPassageCount() }}</p>
-		}
-		<p>Số câu hỏi phát hiện: {{ previewQuestionCount() }}</p>
-		<p>Số đáp án phát hiện: {{ previewAnswerCount() }}</p>
-		@if (selectedTestType() === 'reading') {
-			<p class="hint">Định dạng: Đoạn văn A: Tiêu đề, sau đó là văn bản đoạn, sau đó là các khối Câu hỏi N với các tùy chọn A./B./C./D.</p>
-		} @else {
-			<p class="hint">Định dạng: Câu hỏi N: ... + các tùy chọn A./B./C./D., và các dòng đáp án như 1. A</p>
-		}
-	</aside>
 </section>

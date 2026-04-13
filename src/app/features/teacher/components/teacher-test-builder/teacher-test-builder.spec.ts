@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
 
 import { TeacherTestBuilder } from './teacher-test-builder';
 
@@ -18,6 +18,10 @@ describe('TeacherTestBuilder', () => {
       title: new FormControl(''),
       testType: new FormControl('standard'),
       durationMinutes: new FormControl(30),
+      numQuestions: new FormControl<number | null>(null),
+      numPassages: new FormControl<number | null>(null),
+      questionsTable: new FormArray([]),
+      readingPassages: new FormArray([]),
       questionText: new FormControl(''),
       answerText: new FormControl('')
     }));
