@@ -434,8 +434,11 @@ export class TeacherPageComponent implements OnInit {
       await this.repository.publishTest(payload);
       this.publishedCode.set(code);
       this.createdTests.update((tests) => this.sortTests([payload, ...tests.filter((test) => test.code !== code)]));
-    } catch {
-      this.errors.set([{ scope: 'general', line: 1, message: 'Failed to publish test. Please try again.' }]);
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim().length > 0
+        ? `Failed to publish test: ${error.message}`
+        : 'Failed to publish test. Please try again.';
+      this.errors.set([{ scope: 'general', line: 1, message }]);
     } finally {
       this.isPublishing.set(false);
     }
@@ -913,7 +916,7 @@ export class TeacherPageComponent implements OnInit {
 
       // Only add question if no errors for this row
       if (!errors.some((e) => e.line === questionNumber)) {
-        questions.push({
+        const question: TestQuestion = {
           number: questionNumber,
           prompt: rowValue.question.trim(),
           options: {
@@ -921,9 +924,14 @@ export class TeacherPageComponent implements OnInit {
             B: rowValue.answerB.trim(),
             C: rowValue.answerC.trim(),
             D: rowValue.answerD.trim()
-          },
-          passageId: testType === 'reading' ? rowValue.passageId : undefined
-        });
+          }
+        };
+
+        if (testType === 'reading') {
+          question.passageId = rowValue.passageId;
+        }
+
+        questions.push(question);
 
         answerKey[questionNumber] = rowValue.correctAnswer;
 
