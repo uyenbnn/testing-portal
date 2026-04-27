@@ -1,8 +1,18 @@
 import { Injectable, signal } from '@angular/core';
 import { getApps, initializeApp } from 'firebase/app';
-import { Database, get, getDatabase, ref, remove, set } from 'firebase/database';
+import { Database, get, getDatabase, push, ref, remove, set } from 'firebase/database';
 import { environment } from '../../../environments/environment';
-import { OptionKey, PublishedTest, ReadingPassage, TestCreatorInfo, TestQuestion, TestType } from '../../shared/models/test.models';
+import {
+  OptionKey,
+  PublishedTest,
+  ReadingPassage,
+  ResultSummary,
+  StudentTestResultRecord,
+  StoredQuestionResult,
+  TestCreatorInfo,
+  TestQuestion,
+  TestType
+} from '../../shared/models/test.models';
 
 @Injectable({ providedIn: 'root' })
 export class TestRepositoryService {
@@ -70,6 +80,44 @@ export class TestRepositoryService {
     return parsed;
   }
 
+  async saveStudentResult(summary: ResultSummary, answers: Record<number, OptionKey>, submittedAtIso: string): Promise<void> {
+    const resultRef = push(ref(this.database, `results/${summary.testCode}`));
+    const id = resultRef.key;
+    if (!id) {
+      throw new Error('Failed to allocate result id.');
+    }
+
+    const payload: StudentTestResultRecord = {
+      id,
+      testCode: summary.testCode,
+      studentName: summary.student.name,
+      studentClassName: summary.student.className,
+      totalQuestions: summary.totalQuestions,
+      correctAnswers: summary.correctAnswers,
+      percentage: summary.percentage,
+      submittedAtIso,
+      answers,
+      details: summary.details.map((detail) => ({
+        questionNumber: detail.questionNumber,
+        selected: detail.selected ?? 'N/A',
+        correct: detail.correct,
+        isCorrect: detail.isCorrect
+      }))
+    };
+
+    await set(resultRef, payload);
+  }
+
+  async listStudentResultsByTestCode(testCode: string): Promise<StudentTestResultRecord[]> {
+    const snapshot = await get(ref(this.database, `results/${testCode}`));
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    return this.toStudentResultRecords(snapshot.val(), testCode)
+      .sort((left, right) => right.submittedAtIso.localeCompare(left.submittedAtIso));
+  }
+
   private toPublishedTests(value: unknown): PublishedTest[] {
     if (!value || typeof value !== 'object') {
       return [];
@@ -122,7 +170,7 @@ export class TestRepositoryService {
     }
 
     const passages = this.normalizePassages(candidate.passages, questions, testType);
-    if (testType === 'reading' && passages === null) {
+    if ((testType === 'reading' || testType === 'mixed') && passages === null) {
       return null;
     }
 
@@ -180,7 +228,15 @@ export class TestRepositoryService {
       return false;
     }
 
-    return testType === 'reading' ? typeof candidate.passageId === 'string' : true;
+    if (testType === 'reading') {
+      return typeof candidate.passageId === 'string';
+    }
+
+    if (testType === 'mixed') {
+      return typeof candidate.passageId === 'undefined' || typeof candidate.passageId === 'string';
+    }
+
+    return true;
   }
 
   private isAnswerKey(answerKey: unknown): answerKey is Record<number, OptionKey> {
@@ -192,7 +248,11 @@ export class TestRepositoryService {
   }
 
   private normalizeTestType(testType: PublishedTest['testType'] | undefined): TestType {
-    return testType === 'reading' ? 'reading' : 'standard';
+    if (testType === 'reading' || testType === 'mixed') {
+      return testType;
+    }
+
+    return 'standard';
   }
 
   private normalizePassages(
@@ -200,7 +260,7 @@ export class TestRepositoryService {
     questions: TestQuestion[],
     testType: TestType
   ): ReadingPassage[] | null {
-    if (testType !== 'reading') {
+    if (testType === 'standard') {
       return undefined as never;
     }
 
@@ -214,8 +274,21 @@ export class TestRepositoryService {
     }
 
     const passageIds = new Set(passages.map((passage) => passage.id));
-    if (questions.some((question) => !question.passageId || !passageIds.has(question.passageId))) {
+    if (questions.some((question) => question.passageId && !passageIds.has(question.passageId))) {
       return null;
+    }
+
+    if (testType === 'reading' && questions.some((question) => !question.passageId)) {
+      return null;
+    }
+
+    if (testType === 'mixed') {
+      const hasStandaloneQuestion = questions.some((question) => !question.passageId);
+      const hasReadingQuestion = questions.some((question) => !!question.passageId);
+
+      if (!hasStandaloneQuestion || !hasReadingQuestion) {
+        return null;
+      }
     }
 
     return passages.map((passage) => ({
@@ -240,6 +313,72 @@ export class TestRepositoryService {
       typeof candidate.content === 'string' &&
       Array.isArray(candidate.questionNumbers) &&
       candidate.questionNumbers.every((number) => typeof number === 'number')
+    );
+  }
+
+  private toStudentResultRecords(value: unknown, expectedTestCode: string): StudentTestResultRecord[] {
+    if (!value || typeof value !== 'object') {
+      return [];
+    }
+
+    return Object.values(value).flatMap((candidate) => {
+      const parsed = this.toStudentResultRecord(candidate, expectedTestCode);
+      return parsed ? [parsed] : [];
+    });
+  }
+
+  private toStudentResultRecord(value: unknown, expectedTestCode: string): StudentTestResultRecord | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const candidate = value as Partial<StudentTestResultRecord>;
+    if (
+      typeof candidate.id !== 'string' ||
+      typeof candidate.testCode !== 'string' ||
+      candidate.testCode !== expectedTestCode ||
+      typeof candidate.studentName !== 'string' ||
+      typeof candidate.studentClassName !== 'string' ||
+      typeof candidate.totalQuestions !== 'number' ||
+      typeof candidate.correctAnswers !== 'number' ||
+      typeof candidate.percentage !== 'number' ||
+      typeof candidate.submittedAtIso !== 'string' ||
+      !this.isAnswerKey(candidate.answers) ||
+      !Array.isArray(candidate.details)
+    ) {
+      return null;
+    }
+
+    const details = candidate.details.filter((detail) => this.isStoredQuestionResult(detail));
+    if (details.length !== candidate.details.length) {
+      return null;
+    }
+
+    return {
+      id: candidate.id,
+      testCode: candidate.testCode,
+      studentName: candidate.studentName,
+      studentClassName: candidate.studentClassName,
+      totalQuestions: candidate.totalQuestions,
+      correctAnswers: candidate.correctAnswers,
+      percentage: candidate.percentage,
+      submittedAtIso: candidate.submittedAtIso,
+      answers: candidate.answers,
+      details
+    };
+  }
+
+  private isStoredQuestionResult(value: unknown): value is StoredQuestionResult {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as Partial<StoredQuestionResult>;
+    return (
+      typeof candidate.questionNumber === 'number' &&
+      (candidate.selected === 'A' || candidate.selected === 'B' || candidate.selected === 'C' || candidate.selected === 'D' || candidate.selected === 'N/A') &&
+      (candidate.correct === 'A' || candidate.correct === 'B' || candidate.correct === 'C' || candidate.correct === 'D') &&
+      typeof candidate.isCorrect === 'boolean'
     );
   }
 }

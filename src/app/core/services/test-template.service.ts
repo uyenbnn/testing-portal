@@ -56,11 +56,35 @@ export class TestTemplateService {
     '3. B'
   ].join('\n');
 
+  readonly mixedQuestionTemplate = [
+    'Question 1: Which number is even?',
+    'A. 3',
+    'B. 5',
+    'C. 8',
+    'D. 9',
+    '',
+    'Passage A: Community Garden',
+    'The school garden was expanded so students could grow vegetables and study soil quality.',
+    '',
+    'Question 2: Why was the garden expanded?',
+    'A. To build a parking lot',
+    'B. To grow vegetables and study soil',
+    'C. To reduce homework',
+    'D. To replace the library'
+  ].join('\n');
+
+  readonly mixedAnswerTemplate = [
+    '1. C',
+    '2. B'
+  ].join('\n');
+
   parse(questionText: string, answerText: string, testType: TestType = 'standard'): ParseResult {
     const errors: ParseResult['errors'] = [];
     const parsedQuestions = testType === 'reading'
       ? this.parseReadingQuestions(questionText, errors)
-      : { questions: this.parseStandardQuestions(questionText, errors), passages: [] };
+      : testType === 'mixed'
+        ? this.parseMixedQuestions(questionText, errors)
+        : { questions: this.parseStandardQuestions(questionText, errors), passages: [] };
     const answerKey = this.parseAnswerKey(answerText, errors);
 
     for (const question of parsedQuestions.questions) {
@@ -94,11 +118,27 @@ export class TestTemplateService {
   }
 
   getQuestionTemplate(testType: TestType): string {
-    return testType === 'reading' ? this.readingQuestionTemplate : this.questionTemplate;
+    if (testType === 'reading') {
+      return this.readingQuestionTemplate;
+    }
+
+    if (testType === 'mixed') {
+      return this.mixedQuestionTemplate;
+    }
+
+    return this.questionTemplate;
   }
 
   getAnswerTemplate(testType: TestType): string {
-    return testType === 'reading' ? this.readingAnswerTemplate : this.answerTemplate;
+    if (testType === 'reading') {
+      return this.readingAnswerTemplate;
+    }
+
+    if (testType === 'mixed') {
+      return this.mixedAnswerTemplate;
+    }
+
+    return this.answerTemplate;
   }
 
   private parseStandardQuestions(text: string, errors: ParseResult['errors']): TestQuestion[] {
@@ -310,6 +350,63 @@ export class TestTemplateService {
     return {
       questions: questions.sort((left, right) => left.number - right.number),
       passages
+    };
+  }
+
+  private parseMixedQuestions(
+    text: string,
+    errors: ParseResult['errors']
+  ): { questions: TestQuestion[]; passages: ReadingPassage[] } {
+    const normalizedText = text.replace(/\r\n?/g, '\n');
+    const firstPassageIndex = normalizedText.search(/^Passage\s+[A-Za-z0-9_-]+\s*:\s*.+$/im);
+
+    if (firstPassageIndex === -1) {
+      errors.push({
+        scope: 'question',
+        line: 1,
+        message: 'Mixed tests must include at least one passage section.'
+      });
+
+      return {
+        questions: this.parseStandardQuestions(normalizedText, errors),
+        passages: []
+      };
+    }
+
+    const standardPart = normalizedText.slice(0, firstPassageIndex).trim();
+    const readingPart = normalizedText.slice(firstPassageIndex).trim();
+    const standaloneQuestions = standardPart.length > 0
+      ? this.parseStandardQuestions(standardPart, errors)
+      : [];
+    const readingResult = this.parseReadingQuestions(readingPart, errors);
+
+    if (standaloneQuestions.length === 0) {
+      errors.push({
+        scope: 'question',
+        line: 1,
+        message: 'Mixed tests must include at least one standalone MCQ question before the reading passages.'
+      });
+    }
+
+    const mergedQuestions = [...standaloneQuestions, ...readingResult.questions]
+      .sort((left, right) => left.number - right.number);
+    const seenQuestionNumbers = new Set<number>();
+
+    for (const question of mergedQuestions) {
+      if (seenQuestionNumbers.has(question.number)) {
+        errors.push({
+          scope: 'question',
+          line: 1,
+          message: `Question ${question.number} is duplicated.`
+        });
+      }
+
+      seenQuestionNumbers.add(question.number);
+    }
+
+    return {
+      questions: mergedQuestions,
+      passages: readingResult.passages
     };
   }
 

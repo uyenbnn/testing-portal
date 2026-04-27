@@ -1,5 +1,5 @@
 export type OptionKey = 'A' | 'B' | 'C' | 'D';
-export type TestType = 'standard' | 'reading';
+export type TestType = 'standard' | 'reading' | 'mixed';
 
 export interface ReadingPassage {
   id: string;
@@ -45,6 +45,13 @@ export interface QuestionResult {
   isCorrect: boolean;
 }
 
+export interface StoredQuestionResult {
+  questionNumber: number;
+  selected: OptionKey | 'N/A';
+  correct: OptionKey;
+  isCorrect: boolean;
+}
+
 export interface ResultSummary {
   student: StudentProfile;
   testCode: string;
@@ -52,6 +59,19 @@ export interface ResultSummary {
   correctAnswers: number;
   percentage: number;
   details: QuestionResult[];
+}
+
+export interface StudentTestResultRecord {
+  id: string;
+  testCode: string;
+  studentName: string;
+  studentClassName: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  percentage: number;
+  submittedAtIso: string;
+  answers: Record<number, OptionKey>;
+  details: StoredQuestionResult[];
 }
 
 export interface ParseError {

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { PublishedTest, TestType } from '../../../../shared/models/test.models';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import { PublishedTest, StudentTestResultRecord, TestQuestion, TestType } from '../../../../shared/models/test.models';
 import { CreatedTestItem, PassageQuestionGroup } from '../../teacher-page.models';
 
 type LibraryFilterTestType = 'all' | TestType;
+type DetailTab = 'details' | 'results';
 
 @Component({
   selector: 'app-teacher-test-library',
@@ -22,9 +23,17 @@ export class TeacherTestLibrary {
   readonly deletingCodes = input<Record<string, boolean>>({});
   readonly selectedTest = input<CreatedTestItem | null>(null);
   readonly selectedTestPassageGroups = input<readonly PassageQuestionGroup[]>([]);
+  readonly selectedTestResults = input<readonly StudentTestResultRecord[]>([]);
+  readonly isLoadingSelectedTestResults = input(false);
+  readonly selectedTestResultsError = input('');
   readonly pendingDeleteTest = input<PublishedTest | null>(null);
   readonly searchQuery = signal('');
   readonly testTypeFilter = signal<LibraryFilterTestType>('all');
+  readonly activeDetailTab = signal<DetailTab>('details');
+  readonly detailTabs: { id: DetailTab; label: string }[] = [
+    { id: 'details', label: 'Nội dung bài kiểm tra' },
+    { id: 'results', label: 'Kết quả học sinh' }
+  ];
 
   readonly normalizedSearchQuery = computed(() => this.searchQuery().trim().toLocaleLowerCase());
   readonly hasActiveFilters = computed(() => this.normalizedSearchQuery().length > 0 || this.testTypeFilter() !== 'all');
@@ -75,12 +84,21 @@ export class TeacherTestLibrary {
   readonly cancelDeleteRequest = output<void>();
   readonly deleteTest = output<PublishedTest>();
 
+  constructor() {
+    effect(() => {
+      const testCode = this.selectedTest()?.code ?? '';
+      if (testCode) {
+        this.activeDetailTab.set('details');
+      }
+    });
+  }
+
   setSearchQuery(value: string): void {
     this.searchQuery.set(value);
   }
 
   setTestTypeFilter(value: string): void {
-    this.testTypeFilter.set(value === 'standard' || value === 'reading' ? value : 'all');
+    this.testTypeFilter.set(value === 'standard' || value === 'reading' || value === 'mixed' ? value : 'all');
   }
 
   clearFilters(): void {
@@ -90,6 +108,30 @@ export class TeacherTestLibrary {
 
   isDeleting(code: string): boolean {
     return this.deletingCodes()[code] ?? false;
+  }
+
+  setActiveDetailTab(tab: DetailTab): void {
+    this.activeDetailTab.set(tab);
+  }
+
+  formatSubmittedAt(submittedAtIso: string): string {
+    const date = new Date(submittedAtIso);
+    if (Number.isNaN(date.getTime())) {
+      return submittedAtIso;
+    }
+
+    return new Intl.DateTimeFormat('vi-VN', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  hasPassages(test: CreatedTestItem): boolean {
+    return (test.passages?.length ?? 0) > 0;
+  }
+
+  getStandaloneQuestions(test: CreatedTestItem): TestQuestion[] {
+    return test.questions.filter((question) => !question.passageId);
   }
 
   private matchesSearch(test: CreatedTestItem, query: string): boolean {

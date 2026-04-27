@@ -47,6 +47,10 @@ export class TeacherTestBuilder {
     return this.getMcqTableControls().filter((control) => control.get('passageId')?.value === passageId);
   }
 
+  getStandaloneQuestionControls() {
+    return this.getMcqTableControls().filter((control) => !control.get('passageId')?.value);
+  }
+
   getPassageLabel(passageId: string | null | undefined): string {
     if (!passageId) {
       return '';

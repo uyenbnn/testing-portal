@@ -7,6 +7,7 @@ const firebaseMocks = vi.hoisted(() => ({
   initializeAppMock: vi.fn(() => ({ name: 'app' })),
   getDatabaseMock: vi.fn(() => ({ name: 'database' })),
   refMock: vi.fn((_database: unknown, path?: string) => ({ path })),
+  pushMock: vi.fn((reference: { path?: string }) => ({ key: 'result-1', path: `${reference.path}/result-1` })),
   setMock: vi.fn(),
   removeMock: vi.fn()
 }));
@@ -19,6 +20,7 @@ vi.mock('firebase/app', () => ({
 vi.mock('firebase/database', () => ({
   get: firebaseMocks.getMock,
   getDatabase: firebaseMocks.getDatabaseMock,
+  push: firebaseMocks.pushMock,
   ref: firebaseMocks.refMock,
   set: firebaseMocks.setMock,
   remove: firebaseMocks.removeMock
@@ -35,6 +37,7 @@ describe('TestRepositoryService', () => {
     firebaseMocks.initializeAppMock.mockReset();
     firebaseMocks.getDatabaseMock.mockReset();
     firebaseMocks.refMock.mockReset();
+    firebaseMocks.pushMock.mockReset();
     firebaseMocks.setMock.mockReset();
     firebaseMocks.removeMock.mockReset();
 
@@ -42,6 +45,7 @@ describe('TestRepositoryService', () => {
     firebaseMocks.initializeAppMock.mockReturnValue({ name: 'app' });
     firebaseMocks.getDatabaseMock.mockReturnValue({ name: 'database' });
     firebaseMocks.refMock.mockImplementation((_database: unknown, path?: string) => ({ path }));
+    firebaseMocks.pushMock.mockImplementation((reference: { path?: string }) => ({ key: 'result-1', path: `${reference.path}/result-1` }));
     firebaseMocks.setMock.mockResolvedValue(undefined);
     firebaseMocks.removeMock.mockResolvedValue(undefined);
 
@@ -245,6 +249,74 @@ describe('TestRepositoryService', () => {
       ],
       answerKey: { 1: 'B', 2: 'C' },
       createdAtIso: '2026-04-10T12:00:00.000Z',
+      creator: null
+    });
+  });
+
+  it('loads a mixed test with standalone and passage questions', async () => {
+    firebaseMocks.getMock.mockResolvedValue({
+      exists: () => true,
+      val: () => ({
+        code: '777777',
+        title: 'Combined Review',
+        testType: 'mixed',
+        durationMinutes: 40,
+        questions: [
+          {
+            number: 1,
+            prompt: 'Standalone question',
+            options: { A: '1', B: '2', C: '3', D: '4' }
+          },
+          {
+            number: 2,
+            prompt: 'Reading question',
+            passageId: 'A',
+            options: { A: 'x', B: 'y', C: 'z', D: 'w' }
+          }
+        ],
+        passages: [
+          {
+            id: 'A',
+            title: 'Source Text',
+            content: 'A short source text.',
+            questionNumbers: []
+          }
+        ],
+        answerKey: { 1: 'B', 2: 'C' },
+        createdAtIso: '2026-04-10T12:30:00.000Z'
+      })
+    } as never);
+
+    const test = await service.findByCode('777777');
+
+    expect(test).toEqual({
+      code: '777777',
+      title: 'Combined Review',
+      testType: 'mixed',
+      durationMinutes: 40,
+      questions: [
+        {
+          number: 1,
+          prompt: 'Standalone question',
+          options: { A: '1', B: '2', C: '3', D: '4' }
+        },
+        {
+          number: 2,
+          prompt: 'Reading question',
+          passageId: 'A',
+          options: { A: 'x', B: 'y', C: 'z', D: 'w' }
+        }
+      ],
+      passages: [
+        {
+          id: 'A',
+          title: 'Source Text',
+          content: 'A short source text.',
+          questionNumbers: [2]
+        }
+      ],
+      answerKey: { 1: 'B', 2: 'C' },
+      createdAtIso: '2026-04-10T12:30:00.000Z',
       creator: null
     });
   });

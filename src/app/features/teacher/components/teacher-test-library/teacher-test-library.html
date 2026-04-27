@@ -25,6 +25,7 @@
 					<option value="all">Tất cả</option>
 					<option value="standard">MCQ Tiêu chuẩn</option>
 					<option value="reading">Đọc hiểu</option>
+					<option value="mixed">Kết hợp MCQ + Đọc hiểu</option>
 				</select>
 			</label>
 
@@ -70,7 +71,7 @@
 									<dt>Câu hỏi</dt>
 									<dd>{{ test.questionCount }}</dd>
 								</div>
-								@if (test.testType === 'reading') {
+								@if (test.passageCount > 0) {
 									<div>
 										<dt>Đoạn văn</dt>
 										<dd>{{ test.passageCount }}</dd>
@@ -132,54 +133,125 @@
 				}
 			</div>
 
-			<section class="modal-section">
-				<h3>{{ test.testType === 'reading' ? 'Đoạn văn và Câu hỏi' : 'Câu hỏi' }}</h3>
-				@if (test.testType === 'reading') {
-					<div class="reading-detail-list">
-						@for (group of selectedTestPassageGroups(); track group.passage.id) {
-							<article class="reading-detail-group">
-								<section class="passage-detail-card">
-									<p class="modal-kicker">Đoạn văn {{ group.passage.id }}</p>
-									<h4>{{ group.passage.title }}</h4>
-									<p class="passage-copy">{{ group.passage.content }}</p>
-								</section>
+			<nav class="detail-tab-nav" aria-label="Test detail sections">
+				<div class="detail-tab-list" role="tablist" aria-orientation="horizontal">
+					@for (tab of detailTabs; track tab.id) {
+						<button
+							type="button"
+							class="detail-tab-button"
+							role="tab"
+							[attr.id]="'detail-' + tab.id + '-tab'"
+							[attr.aria-controls]="'detail-' + tab.id + '-panel'"
+							[attr.aria-selected]="activeDetailTab() === tab.id"
+							[class.detail-tab-button--active]="activeDetailTab() === tab.id"
+							(click)="setActiveDetailTab(tab.id)">
+							{{ tab.label }}
+						</button>
+					}
+				</div>
+			</nav>
 
-								<div class="question-detail-list">
-									@for (question of group.questions; track question.number) {
-										<article class="question-detail-card">
-											<h4>Câu hỏi {{ question.number }}</h4>
-											<p>{{ question.prompt }}</p>
-											<ul>
-												<li>A. {{ question.options.A }}</li>
-												<li>B. {{ question.options.B }}</li>
-												<li>C. {{ question.options.C }}</li>
-												<li>D. {{ question.options.D }}</li>
-											</ul>
-											<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
-										</article>
+			@if (activeDetailTab() === 'details') {
+				<section class="modal-section" role="tabpanel" id="detail-details-panel" aria-labelledby="detail-details-tab">
+					@if (hasPassages(test)) {
+						<h3>Đoạn văn và câu hỏi đọc hiểu</h3>
+						<div class="reading-detail-list">
+							@for (group of selectedTestPassageGroups(); track group.passage.id) {
+								<article class="reading-detail-group">
+									<section class="passage-detail-card">
+										<p class="modal-kicker">Đoạn văn {{ group.passage.id }}</p>
+										<h4>{{ group.passage.title }}</h4>
+										<p class="passage-copy">{{ group.passage.content }}</p>
+									</section>
+
+									<div class="question-detail-list">
+										@for (question of group.questions; track question.number) {
+											<article class="question-detail-card">
+												<h4>Câu hỏi {{ question.number }}</h4>
+												<p>{{ question.prompt }}</p>
+												<ul>
+													<li>A. {{ question.options.A }}</li>
+													<li>B. {{ question.options.B }}</li>
+													<li>C. {{ question.options.C }}</li>
+													<li>D. {{ question.options.D }}</li>
+												</ul>
+												<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
+											</article>
+										}
+									</div>
+								</article>
+							}
+						</div>
+					}
+
+					@if (getStandaloneQuestions(test).length > 0) {
+						<h3>{{ hasPassages(test) ? 'Câu hỏi MCQ độc lập' : 'Câu hỏi' }}</h3>
+						<div class="question-detail-list">
+							@for (question of getStandaloneQuestions(test); track question.number) {
+								<article class="question-detail-card">
+									<h4>Câu hỏi {{ question.number }}</h4>
+									<p>{{ question.prompt }}</p>
+									<ul>
+										<li>A. {{ question.options.A }}</li>
+										<li>B. {{ question.options.B }}</li>
+										<li>C. {{ question.options.C }}</li>
+										<li>D. {{ question.options.D }}</li>
+									</ul>
+									<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
+								</article>
+							}
+						</div>
+					}
+				</section>
+			} @else {
+				<section class="modal-section" role="tabpanel" id="detail-results-panel" aria-labelledby="detail-results-tab">
+					<h3>Kết quả của học sinh</h3>
+					@if (isLoadingSelectedTestResults()) {
+						<p class="hint">Đang tải kết quả học sinh...</p>
+					} @else if (selectedTestResultsError()) {
+						<p class="error-text">{{ selectedTestResultsError() }}</p>
+					} @else if (selectedTestResults().length === 0) {
+						<p class="hint">Chưa có học sinh nào nộp bài kiểm tra này.</p>
+					} @else {
+						<div class="results-table-wrap">
+							<table class="results-table">
+								<thead>
+									<tr>
+										<th scope="col">Tên</th>
+										<th scope="col">Lớp</th>
+										<th scope="col">Kết quả</th>
+										<th scope="col">Thời gian</th>
+										<th scope="col">Chi tiết</th>
+									</tr>
+								</thead>
+								<tbody>
+									@for (result of selectedTestResults(); track result.id) {
+										<tr>
+											<td>{{ result.studentName }}</td>
+											<td>{{ result.studentClassName }}</td>
+											<td>{{ result.correctAnswers }}/{{ result.totalQuestions }} ({{ result.percentage }}%)</td>
+											<td>{{ formatSubmittedAt(result.submittedAtIso) }}</td>
+											<td>
+												<details class="result-detail-toggle">
+													<summary>Xem chi tiết</summary>
+													<div class="result-detail-grid">
+														@for (detail of result.details; track detail.questionNumber) {
+															<p>
+																C{{ detail.questionNumber }}: {{ detail.selected }} / {{ detail.correct }}
+																({{ detail.isCorrect ? 'Đúng' : 'Sai' }})
+															</p>
+														}
+													</div>
+												</details>
+											</td>
+										</tr>
 									}
-								</div>
-							</article>
-						}
-					</div>
-				} @else {
-					<div class="question-detail-list">
-						@for (question of test.questions; track question.number) {
-							<article class="question-detail-card">
-								<h4>Câu hỏi {{ question.number }}</h4>
-								<p>{{ question.prompt }}</p>
-								<ul>
-									<li>A. {{ question.options.A }}</li>
-									<li>B. {{ question.options.B }}</li>
-									<li>C. {{ question.options.C }}</li>
-									<li>D. {{ question.options.D }}</li>
-								</ul>
-								<p class="answer-badge">Đáp án đúng: {{ test.answerKey[question.number] }}</p>
-							</article>
-						}
-					</div>
-				}
-			</section>
+								</tbody>
+							</table>
+						</div>
+					}
+				</section>
+			}
 		</div>
 	</section>
 }

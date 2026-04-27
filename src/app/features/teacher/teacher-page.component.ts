@@ -8,7 +8,7 @@ import { TeacherAuthService } from '../../core/services/teacher-auth.service';
 import { TestRepositoryService } from '../../core/services/test-repository.service';
 import { TestTemplateService } from '../../core/services/test-template.service';
 import { TeacherGender, TeacherProfile } from '../../shared/models/auth.models';
-import { ParseError, PublishedTest, ReadingPassage, TestQuestion, TestType, OptionKey } from '../../shared/models/test.models';
+import { ParseError, PublishedTest, ReadingPassage, StudentTestResultRecord, TestQuestion, TestType, OptionKey } from '../../shared/models/test.models';
 import { TeacherTestBuilder } from './components/teacher-test-builder/teacher-test-builder';
 import { TeacherTestLibrary } from './components/teacher-test-library/teacher-test-library';
 import { CreatedTestItem, PassageQuestionGroup, TeacherTestTypeOption } from './teacher-page.models';
@@ -70,6 +70,9 @@ export class TeacherPageComponent implements OnInit {
   readonly listError = signal('');
   readonly deletingCodes = signal<Record<string, boolean>>({});
   readonly selectedTest = signal<CreatedTestItem | null>(null);
+  readonly selectedTestResults = signal<StudentTestResultRecord[]>([]);
+  readonly isLoadingSelectedTestResults = signal(false);
+  readonly selectedTestResultsError = signal('');
   readonly pendingDeleteTest = signal<PublishedTest | null>(null);
   readonly activeTab = signal<TeacherPageTab>('create');
   readonly authMode = signal<TeacherAuthMode>('login');
@@ -134,6 +137,10 @@ export class TeacherPageComponent implements OnInit {
       return numPassages > 0;
     }
 
+    if (testType === 'mixed') {
+      return numQuestions > 0 && numPassages > 0;
+    }
+
     return numQuestions > 0;
   });
   readonly questionsTableFormArray = computed(() => this.form.get('questionsTable') as FormArray);
@@ -168,7 +175,8 @@ export class TeacherPageComponent implements OnInit {
 
   readonly testTypes: TeacherTestTypeOption[] = [
     { value: 'standard', label: 'MCQ Tiêu chuẩn' },
-    { value: 'reading', label: 'Đọc hiểu' }
+    { value: 'reading', label: 'Đọc hiểu' },
+    { value: 'mixed', label: 'Kết hợp MCQ + Đọc hiểu' }
   ];
 
   readonly tabs: { id: TeacherPageTab; label: string }[] = [
@@ -197,7 +205,11 @@ export class TeacherPageComponent implements OnInit {
         // Track per-passage row values so question table regenerates when questionCount changes.
         void readingPassages;
         this.regenerateReadingPassageRows(numPassages);
-        this.regenerateReadingQuestionsByPassages();
+        this.regenerateQuestionsBySections();
+      } else if (testType === 'mixed' && numQuestions > 0 && numQuestions <= 100 && numPassages > 0 && numPassages <= 50) {
+        void readingPassages;
+        this.regenerateReadingPassageRows(numPassages);
+        this.regenerateQuestionsBySections(numQuestions);
       } else {
         this.questionsTableFormArray().clear();
         this.readingPassagesFormArray().clear();
@@ -221,6 +233,9 @@ export class TeacherPageComponent implements OnInit {
       this.isLoadingTests.set(false);
       this.listError.set('');
       this.selectedTest.set(null);
+      this.selectedTestResults.set([]);
+      this.selectedTestResultsError.set('');
+      this.isLoadingSelectedTestResults.set(false);
       this.pendingDeleteTest.set(null);
       this.deletingCodes.set({});
       this.publishedCode.set('');
@@ -362,21 +377,19 @@ export class TeacherPageComponent implements OnInit {
       return;
     }
 
-    if (testType !== 'standard' && testType !== 'reading') {
+    if (testType !== 'standard' && testType !== 'reading' && testType !== 'mixed') {
       this.errors.set([{ scope: 'general', line: 1, message: 'Loại bài kiểm tra không hợp lệ.' }]);
       return;
     }
 
     // Validate based on input mode
     if (isTableMode) {
-      if ((this.numQuestionsValue() ?? 0) <= 0) {
-        if (testType === 'standard') {
-          this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập số lượng câu hỏi.' }]);
-          return;
-        }
+      if ((this.numQuestionsValue() ?? 0) <= 0 && (testType === 'standard' || testType === 'mixed')) {
+        this.errors.set([{ scope: 'general', line: 1, message: testType === 'mixed' ? 'Vui lòng nhập số lượng câu hỏi MCQ độc lập.' : 'Vui lòng nhập số lượng câu hỏi.' }]);
+        return;
       }
 
-      if (testType === 'reading' && (this.numPassagesValue() ?? 0) <= 0) {
+      if ((testType === 'reading' || testType === 'mixed') && (this.numPassagesValue() ?? 0) <= 0) {
         this.errors.set([{ scope: 'general', line: 1, message: 'Vui lòng nhập số lượng đoạn văn.' }]);
         return;
       }
@@ -427,7 +440,7 @@ export class TeacherPageComponent implements OnInit {
         }
       };
 
-      if (payload.testType === 'reading') {
+      if (payload.testType === 'reading' || payload.testType === 'mixed') {
         payload.passages = parsed.passages;
       }
 
@@ -450,10 +463,14 @@ export class TeacherPageComponent implements OnInit {
 
   openTestDetails(test: CreatedTestItem): void {
     this.selectedTest.set(test);
+    void this.loadSelectedTestResults(test.code);
   }
 
   closeSelectedTest(): void {
     this.selectedTest.set(null);
+    this.selectedTestResults.set([]);
+    this.selectedTestResultsError.set('');
+    this.isLoadingSelectedTestResults.set(false);
   }
 
   requestDeleteTest(test: PublishedTest): void {
@@ -517,6 +534,31 @@ export class TeacherPageComponent implements OnInit {
     }
   }
 
+  private async loadSelectedTestResults(testCode: string): Promise<void> {
+    this.selectedTestResultsError.set('');
+    this.isLoadingSelectedTestResults.set(true);
+
+    try {
+      const results = await this.repository.listStudentResultsByTestCode(testCode);
+      if (this.selectedTest()?.code !== testCode) {
+        return;
+      }
+
+      this.selectedTestResults.set(results);
+    } catch {
+      if (this.selectedTest()?.code !== testCode) {
+        return;
+      }
+
+      this.selectedTestResults.set([]);
+      this.selectedTestResultsError.set('Không thể tải kết quả học sinh cho bài kiểm tra này. Vui lòng thử lại.');
+    } finally {
+      if (this.selectedTest()?.code === testCode) {
+        this.isLoadingSelectedTestResults.set(false);
+      }
+    }
+  }
+
   private setDeleting(code: string, isDeleting: boolean): void {
     this.deletingCodes.update((current) => {
       const next = { ...current };
@@ -548,7 +590,14 @@ export class TeacherPageComponent implements OnInit {
   }
 
   private formatTestType(testType: TestType): string {
-    return testType === 'reading' ? 'Reading' : 'Standard MCQ';
+    switch (testType) {
+      case 'reading':
+        return 'Reading';
+      case 'mixed':
+        return 'Mixed MCQ + Reading';
+      default:
+        return 'Standard MCQ';
+    }
   }
 
   private formatCreatorName(test: PublishedTest): string {
@@ -560,7 +609,7 @@ export class TeacherPageComponent implements OnInit {
   }
 
   private toPassageGroups(test: PublishedTest): PassageQuestionGroup[] {
-    if (test.testType !== 'reading' || !test.passages?.length) {
+    if (!test.passages?.length) {
       return [];
     }
 
@@ -724,7 +773,7 @@ export class TeacherPageComponent implements OnInit {
           answerB: this.fb.control('', [Validators.required]),
           answerC: this.fb.control('', [Validators.required]),
           answerD: this.fb.control('', [Validators.required]),
-          passageId: this.fb.control<string | null>(testType === 'reading' ? null : 'P1'),
+	          passageId: this.fb.control<string | null>(testType === 'reading' ? 'P1' : null),
           correctAnswer: this.fb.control<OptionKey | null>(null, [Validators.required])
         })
       );
@@ -752,11 +801,11 @@ export class TeacherPageComponent implements OnInit {
     }
   }
 
-  regenerateReadingQuestionsByPassages(): void {
+  regenerateQuestionsBySections(standaloneQuestionCount = 0): void {
     const questionsArray = this.questionsTableFormArray();
     const passagesArray = this.readingPassagesFormArray();
 
-    const targetPassageIds: string[] = [];
+    const targetPassageIds: Array<string | null> = Array.from({ length: standaloneQuestionCount }, () => null);
     for (let i = 0; i < passagesArray.length; i++) {
       const passage = passagesArray.at(i)?.getRawValue();
       const passageId = `P${i + 1}`;
@@ -766,7 +815,7 @@ export class TeacherPageComponent implements OnInit {
       }
     }
 
-    const currentPassageIds = questionsArray.controls.map((control) => control.get('passageId')?.value as string);
+    const currentPassageIds = questionsArray.controls.map((control) => (control.get('passageId')?.value ?? null) as string | null);
     const isSameLayout =
       currentPassageIds.length === targetPassageIds.length
       && currentPassageIds.every((value, index) => value === targetPassageIds[index]);
@@ -778,6 +827,22 @@ export class TeacherPageComponent implements OnInit {
     questionsArray.clear();
 
     let questionNumber = 1;
+    for (let i = 0; i < standaloneQuestionCount; i++) {
+      questionsArray.push(
+        this.fb.group({
+          questionNumber: this.fb.control(questionNumber),
+          question: this.fb.control('', [Validators.required]),
+          answerA: this.fb.control('', [Validators.required]),
+          answerB: this.fb.control('', [Validators.required]),
+          answerC: this.fb.control('', [Validators.required]),
+          answerD: this.fb.control('', [Validators.required]),
+          passageId: this.fb.control<string | null>(null),
+          correctAnswer: this.fb.control<OptionKey | null>(null, [Validators.required])
+        })
+      );
+      questionNumber += 1;
+    }
+
     for (let i = 0; i < passagesArray.length; i++) {
       const passage = passagesArray.at(i)?.getRawValue();
       const passageId = `P${i + 1}`;
@@ -811,7 +876,7 @@ export class TeacherPageComponent implements OnInit {
     const errors: ParseError[] = [];
     const passageQuestionMap: Record<string, number[]> = {};
 
-    if (testType === 'reading') {
+    if (testType === 'reading' || testType === 'mixed') {
       for (let i = 0; i < readingPassagesArray.length; i++) {
         const row = readingPassagesArray.at(i);
         const rowValue = row?.getRawValue() || {};
@@ -927,7 +992,7 @@ export class TeacherPageComponent implements OnInit {
           }
         };
 
-        if (testType === 'reading') {
+        if ((testType === 'reading' || testType === 'mixed') && rowValue.passageId) {
           question.passageId = rowValue.passageId;
         }
 
@@ -935,13 +1000,13 @@ export class TeacherPageComponent implements OnInit {
 
         answerKey[questionNumber] = rowValue.correctAnswer;
 
-        if (testType === 'reading' && rowValue.passageId && passageQuestionMap[rowValue.passageId]) {
+        if ((testType === 'reading' || testType === 'mixed') && rowValue.passageId && passageQuestionMap[rowValue.passageId]) {
           passageQuestionMap[rowValue.passageId].push(questionNumber);
         }
       }
     }
 
-    if (testType === 'reading') {
+    if (testType === 'reading' || testType === 'mixed') {
       for (const passage of passages) {
         passage.questionNumbers = passageQuestionMap[passage.id] ?? [];
 
@@ -950,6 +1015,27 @@ export class TeacherPageComponent implements OnInit {
             scope: 'question',
             line: Number.parseInt(passage.id.replace('P', ''), 10),
             message: `${passage.title || passage.id}: At least one question must be assigned.`
+          });
+        }
+      }
+
+      if (testType === 'mixed') {
+        const hasStandaloneQuestion = questions.some((question) => !question.passageId);
+        const hasReadingQuestion = questions.some((question) => !!question.passageId);
+
+        if (!hasStandaloneQuestion) {
+          errors.push({
+            scope: 'question',
+            line: 1,
+            message: 'Bài kiểm tra kết hợp phải có ít nhất một câu hỏi MCQ độc lập.'
+          });
+        }
+
+        if (!hasReadingQuestion) {
+          errors.push({
+            scope: 'question',
+            line: 1,
+            message: 'Bài kiểm tra kết hợp phải có ít nhất một câu hỏi thuộc phần đọc hiểu.'
           });
         }
       }

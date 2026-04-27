@@ -28,7 +28,7 @@
       <h2>{{ activeTest()?.title }}</h2>
       <p class="timer" [class.warning]="remainingSeconds() <= 60">Thời gian: {{ timeLabel() }}</p>
 
-      @if (isReadingTest()) {
+      @if (hasReadingSection()) {
         <div class="reading-list">
           @for (group of readingPassageGroups(); track group.passage.id) {
             <article class="reading-group">
@@ -60,9 +60,14 @@
             </article>
           }
         </div>
-      } @else {
+      }
+
+      @if (standaloneQuestions().length > 0) {
+        @if (hasReadingSection()) {
+          <h3>Câu hỏi MCQ độc lập</h3>
+        }
         <div class="question-list">
-          @for (question of activeTest()!.questions; track question.number) {
+          @for (question of standaloneQuestions(); track question.number) {
             <article class="question-card">
               <h3>Question {{ question.number }}</h3>
               <p>{{ question.prompt }}</p>
@@ -91,6 +96,9 @@
       <h2>Kết quả</h2>
       <p><strong>{{ result()!.student.name }}</strong> ({{ result()!.student.className }})</p>
       <p>Điểm số: {{ result()!.correctAnswers }}/{{ result()!.totalQuestions }} ({{ result()!.percentage }}%)</p>
+      @if (resultSaveError()) {
+        <p class="error">{{ resultSaveError() }}</p>
+      }
     </section>
   }
 </main>

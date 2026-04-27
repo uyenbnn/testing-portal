@@ -14,7 +14,7 @@
           ".validate": "newData.isString() && newData.val().length <= 120"
         },
         "testType": {
-          ".validate": "newData.isString() && (newData.val() === 'standard' || newData.val() === 'reading')"
+          ".validate": "newData.isString() && (newData.val() === 'standard' || newData.val() === 'reading' || newData.val() === 'mixed')"
         },
         "durationMinutes": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 300"
@@ -32,7 +32,7 @@
           ".validate": "newData.exists()"
         },
         "passages": {
-          ".validate": "(newData.parent().child('testType').val() === 'standard' && !newData.exists()) || (newData.parent().child('testType').val() === 'reading' && newData.exists() && newData.hasChildren())"
+          ".validate": "(newData.parent().child('testType').val() === 'standard' && !newData.exists()) || ((newData.parent().child('testType').val() === 'reading' || newData.parent().child('testType').val() === 'mixed') && newData.exists() && newData.hasChildren())"
         },
         "$other": {
           ".validate": false
@@ -100,6 +100,68 @@
         },
         "$other": {
           ".validate": false
+        }
+      }
+    },
+    "results": {
+      "$testCode": {
+        ".read": true,
+        "$attemptId": {
+          ".read": true,
+          ".write": "!data.exists() && newData.hasChildren(['id','testCode','studentName','studentClassName','totalQuestions','correctAnswers','percentage','submittedAtIso','answers','details'])",
+          "id": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "testCode": {
+            ".validate": "newData.isString() && newData.val() === $testCode"
+          },
+          "studentName": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "studentClassName": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+          },
+          "totalQuestions": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+          },
+          "correctAnswers": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('totalQuestions').val()"
+          },
+          "percentage": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          },
+          "submittedAtIso": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "answers": {
+            ".validate": "newData.exists()",
+            "$questionNumber": {
+              ".validate": "newData.isString() && (newData.val() === 'A' || newData.val() === 'B' || newData.val() === 'C' || newData.val() === 'D')"
+            }
+          },
+          "details": {
+            ".validate": "newData.exists()",
+            "$index": {
+              "questionNumber": {
+                ".validate": "newData.isNumber() && newData.val() > 0"
+              },
+              "selected": {
+                ".validate": "newData.isString() && (newData.val() === 'A' || newData.val() === 'B' || newData.val() === 'C' || newData.val() === 'D' || newData.val() === 'N/A')"
+              },
+              "correct": {
+                ".validate": "newData.isString() && (newData.val() === 'A' || newData.val() === 'B' || newData.val() === 'C' || newData.val() === 'D')"
+              },
+              "isCorrect": {
+                ".validate": "newData.isBoolean()"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     }

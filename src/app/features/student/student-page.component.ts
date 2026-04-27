@@ -30,13 +30,15 @@ export class StudentPageComponent implements OnDestroy {
 
   readonly activeTest = signal<PublishedTest | null>(null);
   readonly joinError = signal('');
+  readonly resultSaveError = signal('');
   readonly answers = signal<Record<number, OptionKey>>({});
   readonly remainingSeconds = signal(0);
   readonly result = signal<ReturnType<ScoringService['evaluate']> | null>(null);
 
   readonly optionKeys: OptionKey[] = ['A', 'B', 'C', 'D'];
-  readonly isReadingTest = computed(() => this.activeTest()?.testType === 'reading');
+  readonly hasReadingSection = computed(() => (this.activeTest()?.passages?.length ?? 0) > 0);
   readonly readingPassageGroups = computed(() => this.toPassageGroups(this.activeTest()));
+  readonly standaloneQuestions = computed(() => (this.activeTest()?.questions ?? []).filter((question) => !question.passageId));
   readonly timeLabel = computed(() => {
     const total = this.remainingSeconds();
     const mins = Math.floor(total / 60).toString().padStart(2, '0');
@@ -45,6 +47,8 @@ export class StudentPageComponent implements OnDestroy {
   });
 
   private timerId: ReturnType<typeof setInterval> | null = null;
+  private isSubmitting = false;
+  private hasSubmitted = false;
 
   ngOnDestroy(): void {
     this.stopTimer();
@@ -52,6 +56,7 @@ export class StudentPageComponent implements OnDestroy {
 
   async joinTest(): Promise<void> {
     this.joinError.set('');
+    this.resultSaveError.set('');
     this.result.set(null);
 
     if (this.joinForm.invalid) {
@@ -70,6 +75,8 @@ export class StudentPageComponent implements OnDestroy {
     this.activeTest.set(test);
     this.answers.set({});
     this.remainingSeconds.set(test.durationMinutes * 60);
+    this.hasSubmitted = false;
+    this.isSubmitting = false;
     this.startTimer();
   }
 
@@ -80,12 +87,14 @@ export class StudentPageComponent implements OnDestroy {
     }));
   }
 
-  submit(): void {
+  async submit(): Promise<void> {
     const test = this.activeTest();
-    if (!test) {
+    if (!test || this.isSubmitting || this.hasSubmitted) {
       return;
     }
 
+    this.isSubmitting = true;
+    this.resultSaveError.set('');
     this.stopTimer();
 
     const student = {
@@ -93,8 +102,18 @@ export class StudentPageComponent implements OnDestroy {
       className: this.joinForm.controls.className.value
     };
 
-    this.result.set(this.scoringService.evaluate(test, this.answers(), student));
+    const summary = this.scoringService.evaluate(test, this.answers(), student);
+    this.result.set(summary);
     this.activeTest.set(null);
+    this.hasSubmitted = true;
+
+    try {
+      await this.repository.saveStudentResult(summary, this.answers(), new Date().toISOString());
+    } catch {
+      this.resultSaveError.set('Không thể lưu kết quả lên hệ thống. Vui lòng thông báo cho giáo viên của bạn.');
+    } finally {
+      this.isSubmitting = false;
+    }
   }
 
   private startTimer(): void {
@@ -103,7 +122,7 @@ export class StudentPageComponent implements OnDestroy {
     this.timerId = setInterval(() => {
       this.remainingSeconds.update((seconds) => {
         if (seconds <= 1) {
-          this.submit();
+          void this.submit();
           return 0;
         }
 
@@ -120,7 +139,7 @@ export class StudentPageComponent implements OnDestroy {
   }
 
   private toPassageGroups(test: PublishedTest | null): PassageQuestionGroup[] {
-    if (!test || test.testType !== 'reading' || !test.passages?.length) {
+    if (!test || !test.passages?.length) {
       return [];
     }
 

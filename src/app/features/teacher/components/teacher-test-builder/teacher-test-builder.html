@@ -15,18 +15,18 @@
 		<label for="durationMinutes">Thời lượng (phút)</label>
 		<input id="durationMinutes" type="number" min="1" formControlName="durationMinutes" />
 
-		@if (selectedTestType() === 'standard') {
-			<label for="numQuestions">Có bao nhiêu câu hỏi cho bài kiểm tra?</label>
+		@if (selectedTestType() === 'standard' || selectedTestType() === 'mixed') {
+			<label for="numQuestions">{{ selectedTestType() === 'mixed' ? 'Có bao nhiêu câu hỏi MCQ độc lập?' : 'Có bao nhiêu câu hỏi cho bài kiểm tra?' }}</label>
 			<input
 				id="numQuestions"
 				type="number"
 				min="1"
 				max="100"
 				formControlName="numQuestions"
-				placeholder="Nhập số lượng câu hỏi (1-100)" />
+				[placeholder]="selectedTestType() === 'mixed' ? 'Nhập số lượng câu hỏi MCQ độc lập (1-100)' : 'Nhập số lượng câu hỏi (1-100)'" />
 		}
 
-		@if (selectedTestType() === 'reading') {
+		@if (selectedTestType() === 'reading' || selectedTestType() === 'mixed') {
 			<label for="numPassages">Có bao nhiêu đoạn văn trong bài kiểm tra?</label>
 			<input
 				id="numPassages"
@@ -38,9 +38,9 @@
 		}
 
 		@if (isTableMode()) {
-			@if (selectedTestType() === 'standard') {
+			@if (selectedTestType() === 'standard' || selectedTestType() === 'mixed') {
 				<div class="mcq-table-section">
-					<h3>Nhập câu hỏi và đáp án cho bài kiểm tra</h3>
+					<h3>{{ selectedTestType() === 'mixed' ? 'Câu hỏi MCQ độc lập' : 'Nhập câu hỏi và đáp án cho bài kiểm tra' }}</h3>
 					<div class="mcq-table-wrapper">
 						<table class="mcq-table" role="table" aria-label="MCQ questions and answers">
 							<thead>
@@ -55,7 +55,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@for (rowControl of getMcqTableControls(); track $index; let idx = $index) {
+								@for (rowControl of selectedTestType() === 'mixed' ? getStandaloneQuestionControls() : getMcqTableControls(); track $index; let idx = $index) {
 									<tr [formGroup]="rowControl">
 										<td class="col-number">{{ idx + 1 }}</td>
 										<td class="col-question">
@@ -82,7 +82,9 @@
 						</table>
 					</div>
 				</div>
-			} @else {
+			}
+
+			@if (selectedTestType() === 'reading' || selectedTestType() === 'mixed') {
 				<div class="passage-section">
 					<h3>Mỗi đoạn văn có bộ câu hỏi riêng</h3>
 					@for (passageControl of getReadingPassageControls(); track $index; let idx = $index) {
@@ -153,7 +155,7 @@
 		}
 
 		<button class="primary" type="submit" [disabled]="isPublishing()">
-			{{ isPublishing() ? 'Đang xuất bản...' : 'Xuất bản bài kiểm tra' }}
+			<p class="hint">Nhập {{ selectedTestType() === 'mixed' ? 'số câu hỏi MCQ độc lập và số đoạn văn để bắt đầu tạo bài kiểm tra kết hợp' : selectedTestType() === 'reading' ? 'số đoạn văn và số câu hỏi cho từng đoạn' : 'số lượng câu hỏi' }} để bắt đầu tạo bảng.</p>
 		</button>
 
 		@if (publishedCode()) {

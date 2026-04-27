@@ -115,4 +115,53 @@ describe('TestTemplateService', () => {
     expect(result.passages).toEqual([]);
     expect(result.errors.some((error) => error.message.includes('Reading tests must start with a passage header'))).toBe(true);
   });
+
+  it('parses mixed tests with standalone and reading questions', () => {
+    const result = service.parse(
+      [
+        'Question 1: Which shape has three sides?',
+        'A. Circle',
+        'B. Triangle',
+        'C. Square',
+        'D. Rectangle',
+        '',
+        'Passage A: Team Project',
+        'Students split tasks to finish a science project on time.',
+        '',
+        'Question 2: Why did the students split tasks?',
+        'A. To finish on time',
+        'B. To cancel the project',
+        'C. To skip class',
+        'D. To avoid science'
+      ].join('\n'),
+      [
+        '1. B',
+        '2. A'
+      ].join('\n'),
+      'mixed'
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.questions).toEqual([
+      {
+        number: 1,
+        prompt: 'Which shape has three sides?',
+        options: { A: 'Circle', B: 'Triangle', C: 'Square', D: 'Rectangle' }
+      },
+      {
+        number: 2,
+        prompt: 'Why did the students split tasks?',
+        passageId: 'A',
+        options: { A: 'To finish on time', B: 'To cancel the project', C: 'To skip class', D: 'To avoid science' }
+      }
+    ]);
+    expect(result.passages).toEqual([
+      {
+        id: 'A',
+        title: 'Team Project',
+        content: 'Students split tasks to finish a science project on time.',
+        questionNumbers: [2]
+      }
+    ]);
+  });
 });
